@@ -5,16 +5,22 @@
 #include <vector>
 #include <map>
 #include <z3++.h>
+#include <fstream>
+#include "configuration.hh"
 
 typedef int op_t;
 
 enum ltl_op {
-    Empty,
+    Empty, // Free
     Not,
     Or,
     And,
-    Next,
-    Until,
+    #if GF_FRAGMENT
+    //
+    #else
+        Next,
+        Until,
+    #endif
     Globally,
     Finally,
     Proposition
@@ -52,15 +58,22 @@ struct Trace{
 
 class QuantDriver{
     public:
-        QuantDriver();
+        QuantDriver(const std::fstream* source, const std::string formula);
         QuantDriver(const QuantDriver&) = delete;
         QuantDriver& operator=(const QuantDriver&) = delete;
 
         ~QuantDriver();
 
+        static int error_flag;
+
     private:
-        Node *ast;
-        std::vector<std::string> *traces;
+        static int parse_traces(const std::fstream* source);
+        static int parse_formula(const std::string formula);
+
+        Node *ast; // syntax tree
+        std::vector<Trace> *traces;
+
+        Z3_context* context; // optimization context
 };
 
 #endif
