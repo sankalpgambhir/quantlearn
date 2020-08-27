@@ -9,8 +9,8 @@ namespace Configuration
     void init_options(){
         desc.add_options()
             ("help,h", "produce help message")
-            ("input-file,i", po::value<std::string>(), "input file")
-            ("formula,f", po::value<std::string>(), "formula pattern to look for")
+            ("input-file,i", po::value<std::string>()->default_value(""), "input file")
+            ("formula,f", po::value<std::string>()->default_value(""), "formula pattern to look for")
         ;
     }
 }
