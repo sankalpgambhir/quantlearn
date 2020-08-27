@@ -3,6 +3,22 @@
 
 #include <boost/program_options.hpp>
 
+
+// actual config options
+#define GF_FRAGMENT 1
+
+// config based switches
+
+
+// descriptive macros
+#define __empty ""
+
+// return values
+#define OK 0
+#define FILE_OPEN_FAIL 1
+#define FILE_PARSE_FAIL 2
+#define FORM_PARSE_FAIL 3
+
 namespace po = boost::program_options;
 
 namespace Configuration{
