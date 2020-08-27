@@ -56,6 +56,8 @@ class QuantDriver{
         QuantDriver(const QuantDriver&) = delete;
         QuantDriver& operator=(const QuantDriver&) = delete;
 
+        ~QuantDriver();
+
     private:
         Node *ast;
         std::vector<std::string> *traces;
