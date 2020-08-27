@@ -1,5 +1,5 @@
-#ifndef QUANTDRIVER.HH
-#define QUANTDRIVER.HH
+#ifndef __QUANTDRIVER_HH__
+#define __QUANTDRIVER_HH__
 
 #include <string>
 #include <vector>
