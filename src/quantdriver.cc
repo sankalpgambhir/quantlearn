@@ -40,3 +40,39 @@ int QuantDriver::parse_formula(const std::string formula){
     // do actual parsing
     // format for formulae??
 }
+
+void QuantDriver::run(){
+    // if top level unknown, parallelize
+
+    // construct constraint
+}
+
+const int op_arity(ltl_op o){
+
+    switch (o)
+    {
+        case ltl_op::Not:
+        case ltl_op::Globally:
+        case ltl_op::Finally:
+
+        #if GF_FRAGMENT
+        #else
+        case ltl_op::Next:
+        #endif
+
+            return 1;
+
+        case ltl_op::And:
+        case ltl_op::Or:
+        
+        #if GF_FRAGMENT
+        #else
+        case ltl_op::Until:
+        #endif
+
+            return 2;
+        
+        default:
+            return 0;
+    }
+}

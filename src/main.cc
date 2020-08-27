@@ -35,14 +35,17 @@ int main(int argc, char* argv[]){
         return FILE_OPEN_FAIL;
     }
 
-    // instantiate a driver, create a context
-    QuantDriver *driver = new QuantDriver(source);
+    std::string formula = Configuration::vm["formula"].as<std::string>();
 
-    if(driver->error_flag){
+    // instantiate a driver, create a context
+    QuantDriver *driver = new QuantDriver(source, formula);
+
+    if(driver->error_flag != OK){
         return driver->error_flag;
     }
-    
-    // pass to quantdriver
+
+    // run driver
+    driver->run();
 
     // print obtained result
 
