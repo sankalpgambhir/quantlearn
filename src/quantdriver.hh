@@ -23,8 +23,8 @@ enum ltl_op {
     #endif
     Globally,
     Finally,
-    Subformula,
-    Proposition
+    Proposition,
+    Subformula
 };
 
 std::map<ltl_op, char> operators = {
@@ -84,6 +84,13 @@ struct Node{
 
 struct Trace{
 
+    int id;
+    static int trace_count;
+
+    Trace(){
+        this->id = trace_count++;
+    }
+
     struct proposition{
         std::string name;
         std::vector<std::pair<int, int> > instances;
@@ -92,6 +99,35 @@ struct Trace{
     std::map<std::string, proposition> prop_inst;
     std::vector<std::string> trace_string; // original trace
     int length;
+
+    void construct_bit_matrices(z3::context &c){
+        // construct operator matrix
+        for(int i = 1; i <= Proposition; i++){
+            x.emplace_back();
+            for(int j = 0; j < this->length; j++){
+                std::string name = "{X(" + std::to_string(this->id)
+                                     + ',' + std::to_string(i) + ',' + std::to_string(j) + ")}";
+                x.back().push_back(c.bool_const(name.c_str()));
+            }
+        }
+
+        // construct proposition matrix
+        for(int i = 0; i < this->prop_inst.size(); i++){
+            xp.emplace_back();
+            for(int j = 0; j < this->length; j++){
+                std::string name = "{XP(" + std::to_string(this->id)
+                                     + ',' + std::to_string(i) + ',' + std::to_string(j) + ")}"; 
+                xp.back().push_back(c.bool_const(name.c_str()));
+            }
+        }
+    }
+
+    // calculating stuff for this trace
+    // Not sure about usage fo z3::expr_vector. Possible optimization?
+    std::vector<std::vector<z3::expr> > x; // matrix of bools
+    std::vector<std::vector<z3::expr> > xp;
+
+    // constraints
 };
 
 struct Result{
@@ -123,9 +159,12 @@ class QuantDriver{
         static void construct_ast(Node* ast, int depth);
 
         Node *ast; // syntax tree
+        static int ast_size;
         std::vector<Trace> *traces;
 
-        Z3_context* context; // optimization context
+        z3::context opt_context; // optimization context
+
+
 
         int max_depth;
 };

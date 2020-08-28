@@ -40,6 +40,7 @@ int main(int argc, char* argv[]){
     // instantiate a driver, create a context
     QuantDriver *driver = new QuantDriver(source, formula);
 
+    // check if initialization and parsing was fine
     if(driver->error_flag != OK){
         return driver->error_flag;
     }

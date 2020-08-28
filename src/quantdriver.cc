@@ -9,13 +9,11 @@ QuantDriver::QuantDriver(const std::fstream* source, const std::string formula)
     }   
     
     // parse formula
+    this->ast_size = 0;
     if(parse_formula(formula)){
         this->error_flag = FORM_PARSE_FAIL;
+        return;
     }
-
-
-    // create a context
-    context = new Z3_context();
 
     this->error_flag = OK;
 }
@@ -27,15 +25,10 @@ QuantDriver::QuantDriver(std::vector<Trace> *traces, Node* ast)
 
     this->ast = ast;
 
-    // create a context
-    context = new Z3_context();
-
     this->error_flag = OK;
 }
 
 QuantDriver::~QuantDriver(){
-    // delete context
-    delete context;
 
     // delete trees
     this->ast->destroy_children();
@@ -62,11 +55,20 @@ void QuantDriver::run(){
         return;
     }   
 
+    // construct variables
+
     // construct constraint
 
     // create optimizer
+    z3::optimize opt(this->opt_context);
+    z3::params opt_params(this->opt_context);
+    opt_params.set("priority", this->opt_context.str_symbol("pareto"));
+
+    // add constraint
     // optimize
     // write result
+
+    delete opt;
 }
 
 void QuantDriver::run_parallel(){
@@ -74,7 +76,7 @@ void QuantDriver::run_parallel(){
     std::vector<QuantDriver*> par_driver;
     std::vector<std::thread*> par_threads;
 
-    for(int i = 1; i < Subformula; i++){ // swap in every operator
+    for(int i = 1; i < Proposition; i++){ // swap in every operator
     // start with 1 to ignore Empty label
         par_ast.emplace_back();
         par_ast.back()->label = (ltl_op) i;

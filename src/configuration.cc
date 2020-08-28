@@ -17,4 +17,9 @@ namespace Configuration
     void throw_error(std::string error_info){
         std::cerr << "Error: " << error_info << "!\n";
     }
+
+    void static_init(){
+        // initialize static variables as needed
+        Trace::trace_count = 0;
+    }
 }
