@@ -19,10 +19,10 @@ int main(int argc, char* argv[]){
     
     // were all options passed?
     if(!Configuration::vm.count("input-file") || Configuration::vm["input-file"].as<std::string>() == __empty){
-        std::cerr << "Error: No input file specified!" << "\n";
+        Configuration::throw_error("No input file specified");
     }
     if(!Configuration::vm.count("formula") || Configuration::vm["formula"].as<std::string>() == __empty){
-        std::cerr << "Error: No formula pattern specified!" << "\n";
+        Configuration::throw_error("No formula pattern specified");
     }
 
     // parse input file
@@ -31,7 +31,7 @@ int main(int argc, char* argv[]){
     source->open(Configuration::vm["input-file"].as<std::string>());
 
     if(!source->is_open()){
-        std::cerr << "Error: Could not open file!" << "\n";
+        Configuration::throw_error("Could not open file");
         return FILE_OPEN_FAIL;
     }
 

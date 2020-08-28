@@ -13,4 +13,8 @@ namespace Configuration
             ("formula,f", po::value<std::string>()->default_value(""), "formula pattern to look for")
         ;
     }
+
+    void throw_error(std::string error_info){
+        std::cerr << "Error: " << error_info << "!\n";
+    }
 }
