@@ -2,12 +2,14 @@
 #define __CONFIGURATION_HH__
 
 #include <boost/program_options.hpp>
+#include <iostream>
 
 
 // actual config options
 #define GF_FRAGMENT 1
 #define TRACE_DELIMITER # // TODO: input delimiters from user
 #define STEP_DELIMITER ,
+#define MAX_DEPTH_DEFAULT 4
 
 // config based switches
 
@@ -25,6 +27,7 @@ namespace po = boost::program_options;
 
 namespace Configuration{
     extern void init_options();
+    extern void throw_error(std::string);
     extern po::options_description desc;
     extern po::variables_map vm;
 }

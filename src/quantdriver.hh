@@ -6,6 +6,8 @@
 #include <map>
 #include <z3++.h>
 #include <fstream>
+#include <thread>
+#include <algorithm>
 #include "configuration.hh"
 
 enum ltl_op {
@@ -45,8 +47,23 @@ std::map<ltl_op, char> operators = {
 const int op_arity(ltl_op o);
 
 struct Node{
-    Node() : label(Empty), prop_label(""), subformula_size(0),
+    Node()  : label(Empty), prop_label(""), subformula_size(0),
                 left(nullptr), right(nullptr){}
+
+    Node(Node& copy, ltl_op new_label = Empty) 
+            : prop_label(""), subformula_size(0),
+                left(nullptr), right(nullptr){
+        if (new_label == Empty){
+            this->label = copy.label;
+        }
+        else{
+            this->label = new_label;
+        }
+    }
+
+    ~Node(){
+        this->destroy_children();
+    }
 
     ltl_op label;
     int subformula_size;
@@ -79,6 +96,7 @@ struct Trace{
 
 struct Result{
     std::string output_formula;
+    float value;
 };
 
 class QuantDriver{
@@ -86,13 +104,14 @@ class QuantDriver{
         QuantDriver(const std::fstream* source, const std::string formula);
 
         // create a driver from a parsed trace set, for parallelization
-        QuantDriver(std::vector<Trace> *traces, const std::string formula);
+        QuantDriver(std::vector<Trace> *traces, Node* ast);
         QuantDriver(const QuantDriver&) = delete;
         QuantDriver& operator=(const QuantDriver&) = delete;
 
         ~QuantDriver();
 
         void run();
+        void run_parallel();
 
         static int error_flag;
         Result result;
@@ -101,10 +120,14 @@ class QuantDriver{
         static int parse_traces(const std::fstream* source);
         static int parse_formula(const std::string formula);
 
+        static void construct_ast(Node* ast, int depth);
+
         Node *ast; // syntax tree
         std::vector<Trace> *traces;
 
         Z3_context* context; // optimization context
+
+        int max_depth;
 };
 
 #endif
