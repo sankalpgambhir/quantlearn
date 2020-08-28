@@ -116,6 +116,18 @@ void QuantDriver::run_parallel(){
     par_ast.clear();
 }
 
+void QuantDriver::construct_ast(Node* ast, int depth){
+    if(depth == 0){
+        return;
+    }
+    
+    ast->left = new Node();
+    ast->right = new Node();
+
+    construct_ast(ast->left, depth - 1);
+    construct_ast(ast->right, depth - 1);
+}
+
 const int op_arity(ltl_op o){
 
     switch (o)
