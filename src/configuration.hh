@@ -9,8 +9,9 @@
 // actual config options
 #define GF_FRAGMENT 1
 #define NNF 1
-#define TRACE_DELIMITER # // TODO: input delimiters from user
-#define STEP_DELIMITER ,
+#define TRACE_DELIMITER '#' // TODO: input delimiters from user
+#define STEP_DELIMITER ';'
+#define PROP_DELIMITER ','
 #define MAX_DEPTH_DEFAULT 4
 
 // config based switches
@@ -28,7 +29,6 @@
 namespace po = boost::program_options;
 
 namespace Configuration{
-    extern void static_init();
     extern void init_options();
     extern void throw_error(std::string);
     extern po::options_description desc;

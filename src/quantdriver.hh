@@ -6,6 +6,7 @@
 #include <map>
 #include <z3++.h>
 #include <fstream>
+#include <sstream>
 #include <thread>
 #include <algorithm>
 #include "configuration.hh"
@@ -27,22 +28,7 @@ enum ltl_op {
     Subformula
 };
 
-std::map<ltl_op, char> operators = {
-    {Empty , (char) 0}, // Free
-    {Not , '-'},
-    {Or , '+'},
-    {And , '*'},
-    #if GF_FRAGMENT
-    //
-    #else
-        {Next , 'X'},
-        {Until , 'U'},
-    #endif
-    {Globally , 'G'},
-    {Finally , 'F'},
-    {Subformula , 'S'},
-    {Proposition , (char) 0}
-};
+extern std::map<ltl_op, char> operators;
 
 const int op_arity(ltl_op o);
 
@@ -84,46 +70,33 @@ struct Node{
 
 struct Trace{
 
+    Trace(){
+        this->id = Trace::trace_count++;
+    }
+
     int id;
     static int trace_count;
 
-    Trace(){
-        this->id = trace_count++;
-    }
-
     struct proposition{
+        struct instance{
+            int position;
+            int num_after;
+            int pos_next;
+        };
+
         std::string name;
-        std::vector<std::pair<int, int> > instances;
+        std::vector<instance> instances; // <position, props after, next prop>
+        
     };
 
     std::map<std::string, proposition> prop_inst;
-    std::vector<std::string> trace_string; // original trace
+    std::vector<std::vector<std::string> > trace_string; // original trace
     int length;
 
-    void construct_bit_matrices(z3::context &c){
-        // construct operator matrix
-        for(int i = 1; i <= Proposition; i++){
-            x.emplace_back();
-            for(int j = 0; j < this->length; j++){
-                std::string name = "{X(" + std::to_string(this->id)
-                                     + ',' + std::to_string(i) + ',' + std::to_string(j) + ")}";
-                x.back().push_back(c.bool_const(name.c_str()));
-            }
-        }
-
-        // construct proposition matrix
-        for(int i = 0; i < this->prop_inst.size(); i++){
-            xp.emplace_back();
-            for(int j = 0; j < this->length; j++){
-                std::string name = "{XP(" + std::to_string(this->id)
-                                     + ',' + std::to_string(i) + ',' + std::to_string(j) + ")}"; 
-                xp.back().push_back(c.bool_const(name.c_str()));
-            }
-        }
-    }
+    void construct_bit_matrices(z3::context& c, const int ast_size);
 
     // calculating stuff for this trace
-    // Not sure about usage fo z3::expr_vector. Possible optimization?
+    // Not sure about usage of z3::expr_vector. Possible optimization?
     std::vector<std::vector<z3::expr> > x; // matrix of bools
     std::vector<std::vector<z3::expr> > xp;
 
@@ -150,21 +123,19 @@ class QuantDriver{
         void run_parallel();
 
         static int error_flag;
+        static int ast_size;
         Result result;
 
     private:
-        static int parse_traces(const std::fstream* source);
-        static int parse_formula(const std::string formula);
+        bool parse_traces(const std::fstream* source);
+        bool parse_formula(const std::string formula);
 
         static void construct_ast(Node* ast, int depth);
 
         Node *ast; // syntax tree
-        static int ast_size;
         std::vector<Trace> *traces;
 
         z3::context opt_context; // optimization context
-
-
 
         int max_depth;
 };

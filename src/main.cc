@@ -41,8 +41,8 @@ int main(int argc, char* argv[]){
     QuantDriver *driver = new QuantDriver(source, formula);
 
     // check if initialization and parsing was fine
-    if(driver->error_flag != OK){
-        return driver->error_flag;
+    if(QuantDriver::error_flag != OK){
+        return QuantDriver::error_flag;
     }
 
     // run driver
