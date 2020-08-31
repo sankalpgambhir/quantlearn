@@ -72,19 +72,32 @@ bool QuantDriver::parse_traces(const std::fstream *source){
 
     std::string temp_prop = __empty;
     std::string temp_step = __empty;
+    int curr_step = 0;
+
+    // hold futures for trace computations
+    std::vector<std::future<void> > async_trace_comp;
 
     for(int i = 0; i < str.length(); i++){
         if(str[i] == PROP_DELIMITER){
             // check prop
             if(curr_trace.prop_inst.find(temp_prop) == curr_trace.prop_inst.end()){
                 // add new prop
+                // TODO deal with this weird error for insertion?
+                /*curr_trace.prop_inst.insert(
+                    std::pair<std::string, Trace::proposition>(temp_prop, 
+                                                                Trace::proposition())
+                );*/
+                // Double insertion for Not prop
             }
-            else{
-                // add new instance of prop
-            }
-            // add prop to trace
 
+            // add new instance of prop
+            curr_trace.prop_inst[temp_prop].instances.emplace_back(curr_step);
+        
+            // add prop to trace
+            temp_step += temp_prop;
             temp_prop = __empty;
+            temp_step += " ";
+
             continue;
 
         }
@@ -93,19 +106,32 @@ bool QuantDriver::parse_traces(const std::fstream *source){
             // compute props
             curr_trace.trace_string.back().emplace_back(temp_step);
             temp_step = __empty;
+            curr_step++;
             continue;
         }
         if(str[i] == TRACE_DELIMITER){
+            // let every trace individually compute while we go on
+            // do NOT use curr_trace for async, since it'll be modified 
+            // this breaks things in unimaginable ways
+            async_trace_comp.emplace_back(
+                std::async(&Trace::compute_prop_counts, this->traces->back()));
+
             this->traces->emplace_back();
             curr_trace = this->traces->back();
+            curr_step = 0;
+
             continue;
         }
 
+        // not a delimiter, move on
+        temp_prop += str[i];
 
     }
 
-    // do actual parsing
-    // how to store traces??
+    // make sure all trace computations finished
+    for(auto &comp : async_trace_comp){
+        comp.get();
+    }
 
     return true;
 }
@@ -256,4 +282,8 @@ void Trace::construct_bit_matrices(z3::context &c, const int ast_size){
                 xp.back().push_back(c.bool_const(name.c_str()));
             }
         }
+    }
+
+    void Trace::compute_prop_counts(){
+        // compute not prop instances together
     }

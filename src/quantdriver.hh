@@ -8,6 +8,7 @@
 #include <fstream>
 #include <sstream>
 #include <thread>
+#include <future>
 #include <algorithm>
 #include "configuration.hh"
 
@@ -79,6 +80,8 @@ struct Trace{
 
     struct proposition{
         struct instance{
+            instance(int pos = 0, int num = 0, int posn = 0)
+            : position(pos), num_after(num), pos_next(posn){}
             int position;
             int num_after;
             int pos_next;
@@ -94,6 +97,7 @@ struct Trace{
     int length;
 
     void construct_bit_matrices(z3::context& c, const int ast_size);
+    void compute_prop_counts();
 
     // calculating stuff for this trace
     // Not sure about usage of z3::expr_vector. Possible optimization?
