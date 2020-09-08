@@ -7,7 +7,7 @@
 
 
 // actual config options
-#define GF_FRAGMENT 1
+#define GF_FRAGMENT 0
 #define NNF 1
 #define TRACE_DELIMITER '#' // TODO: input delimiters from user
 #define STEP_DELIMITER ';'

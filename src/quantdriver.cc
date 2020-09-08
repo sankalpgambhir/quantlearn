@@ -137,7 +137,12 @@ bool QuantDriver::parse_traces(const std::fstream *source){
 }
 
 bool QuantDriver::parse_formula(const std::string formula){
-    // initialize ast
+    // initialize parser 
+    auto f (std::begin(formula)), l (std::end(formula));
+    Parser::parse_into_ast(ast, f, l)
+
+    
+
     // do actual parsing
     // format for formulae??
     return true;

@@ -11,6 +11,7 @@
 #include <future>
 #include <algorithm>
 #include "configuration.hh"
+#include "parser.hh"
 
 enum ltl_op {
     Empty, // Free

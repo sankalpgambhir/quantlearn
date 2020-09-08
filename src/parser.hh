@@ -4,6 +4,7 @@
 #include <boost/variant/recursive_wrapper.hpp>
 #include "configuration.hh"
 
+namespace Parser {
 
 namespace qi  = boost::spirit::qi;
 namespace phx = boost::phoenix;
@@ -167,6 +168,45 @@ template <typename Iter, typename Skipper = qi::space_type>
     qi::rule<Iter, var() , Skipper> var_;
     qi::rule<Iter, expr(), Skipper> simple_, expr_;
 };
+/*
+bool copy_into_ast(Node*, expr);
+
+bool parse_into_ast(Node* ast, std::string::const_iterator f, std::string::const_iterator l){
+    parser<decltype(f)> p;
+
+        try
+        {
+            expr result;
+            bool ok = qi::phrase_parse(f,l,p > ';',qi::space,result);
+
+            if (!ok)
+                Configuration::throw_error("Could not parse formula!");
+                return false;
+            else
+                std::cout << "result: " << result << "\n";
+
+        } catch (const qi::expectation_failure<decltype(f)>& e)
+        {
+            std::string errstr = "Expectation failure at " + std::string(e.first, e.last) + "\n";
+            Configuration::throw_error(errstr);
+        }
+
+        if (f!=l) std::cerr << "unparsed: '" << std::string(f,l) << "'\n";
+
+    // move into ast
+    if(!copy_to_ast(ast, result)){
+        Configuration::throw_error("Could not parse into AST!");
+    }
+
+    return true;
+}
+
+bool copy_to_ast(Node* ast, expr result){
+    return true;
+}
+*/
+
+}
 
 
 /*
