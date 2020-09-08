@@ -1,82 +1,211 @@
 #include <boost/spirit/include/qi.hpp>
 #include <boost/spirit/include/phoenix.hpp>
-#include "quantdriver.hh"
+#include <boost/spirit/include/phoenix_operator.hpp>
+#include <boost/variant/recursive_wrapper.hpp>
+#include "configuration.hh"
 
-namespace qi = boost::spirit::qi;
-namespace ascii = boost::spirit::ascii;
-namespace phoenix = boost::phoenix;
 
-using Value = boost::make_recursive_variant<std::string, double, std::vector<boost::recursive_variant_> >::type;
-using Map = std::map<std::string, Value>;
+namespace qi  = boost::spirit::qi;
+namespace phx = boost::phoenix;
 
-template <typename Parser, typename ... Args>
-void ParseOrDie(const std::string& input, const Parser& p, Args&& ... args)
-{
-    std::string::const_iterator begin = input.begin(), end = input.end();
-    bool ok = qi::parse(begin, end, p, std::forward<Args>(args) ...);
-    if (!ok || begin != end) {
-        std::cout << "Unparseable: "
-                  << std::quoted(std::string(begin, end)) << std::endl;
-        throw std::runtime_error("Parse error");
-    }
-}
+// TAGS
+// boolean
+struct op_or  {};
+struct op_and {};
+struct op_not {};
+// temporal
+struct op_next {};
+struct op_until {};
+struct op_globally {};
+struct op_finally {};
+// meta
+struct op_subform {};
 
-template <typename It>
-struct ltlgrammar : qi::grammar<It, Map()> {
-    ltlgrammar() : ltlgrammar::base_type(start) {
-        using namespace qi;
+typedef std::string var;
+template <typename tag> struct binop;
+template <typename tag> struct unop;
 
-        start     = skip(space) [*key_value];
-        key_value = key >> '=' >> value;
-        value     = v_string | v_array | v_num;
+typedef boost::variant<var, int,
+        boost::recursive_wrapper<unop <op_not> >, 
+        boost::recursive_wrapper<binop<op_and> >,
+        boost::recursive_wrapper<binop<op_or> >,
+        boost::recursive_wrapper<unop <op_next> >, 
+        boost::recursive_wrapper<binop<op_until> >,
+        boost::recursive_wrapper<unop<op_globally> >,
+        boost::recursive_wrapper<unop<op_finally> >, 
+        boost::recursive_wrapper<unop<op_subform> >
+        > expr;
 
-        // lexemes
-        key = alpha >> *alnum;
-        v_string  = "“" >> *('\\' >> char_ | ~char_("”")) >> "”";
-        v_array   = '(' >> *value >> ')';
-        v_num     = double_;
-
-        BOOST_SPIRIT_DEBUG_NODES((start)(key_value)(value)(key)(v_string)(v_array)(v_num))
-    }
-  private:
-    qi::rule<It, Map()> start;
-    qi::rule<It, std::pair<std::string, Value>(), qi::space_type> key_value;
-    qi::rule<It, Value(), qi::space_type> value;
-    qi::rule<It, std::vector<Value>(), qi::space_type> v_array;
-
-    qi::rule<It, std::string()> key, v_string;
-    qi::rule<It, double()> v_num;
-    // lexemes
+template <typename tag> struct binop 
+{ 
+    explicit binop(const expr& l, const expr& r) : oper1(l), oper2(r) { }
+    expr oper1, oper2; 
 };
 
-// define operators
+template <typename tag> struct unop  
+{ 
+    explicit unop(const expr& o) : oper1(o) { }
+    expr oper1; 
+};
 
-struct ltloperators_ : qi::symbols<char, ltl_op>
+struct printer : boost::static_visitor<void>
 {
-    ltloperators_()
+    printer(std::ostream& os) : _os(os) {}
+    std::ostream& _os;
+
+    //
+    void operator()(const var& v) const { _os << v; }
+    void operator()(const int& i) const { _os << i; }
+
+    void operator()(const binop<op_and>& b) const { print(" & ", b.oper1, b.oper2); }
+    void operator()(const binop<op_or >& b) const { print(" | ", b.oper1, b.oper2); }
+    void operator()(const binop<op_until >& b) const { print(" U ", b.oper1, b.oper2); }
+    
+    void print(const std::string& op, const expr& l, const expr& r) const
     {
-        add
-        ('-', Not)
-        ('+', Or)
-        ('*', And)
-        #if GF_FRAGMENT
-        //
-        #else
-            ("X", Next)
-            ("U", Until)
-        #endif
-        ('G', Globally)
-        ('F', Finally);
+        _os << "(";
+            boost::apply_visitor(*this, l);
+            _os << op;
+            boost::apply_visitor(*this, r);
+        _os << ")";
     }
 
-} ltloperators;
-
-struct subform_ : qi::symbols<char, ltl_op>
-{
-    subform_()
+    void operator()(const unop<op_not>& u) const
     {
-        add
-        ('S', Subformula);
+        _os << "(";
+            _os << "!";
+            boost::apply_visitor(*this, u.oper1);
+        _os << ")";
     }
 
-} subform;
+    void operator()(const unop<op_next>& u) const
+    {
+        _os << "(";
+            _os << "X ";
+            boost::apply_visitor(*this, u.oper1);
+        _os << ")";
+    }
+
+    void operator()(const unop<op_globally>& u) const
+    {
+        _os << "(";
+            _os << "G ";
+            boost::apply_visitor(*this, u.oper1);
+        _os << ")";
+    }
+
+    void operator()(const unop<op_finally>& u) const
+    {
+        _os << "(";
+            _os << "F ";
+            boost::apply_visitor(*this, u.oper1);
+        _os << ")";
+    }
+
+    void operator()(const unop<op_subform>& u) const
+    {
+        _os << "(";
+            _os << "S ";
+            boost::apply_visitor(*this, u.oper1);
+        _os << ")";
+    }
+};
+
+std::ostream& operator<<(std::ostream& os, const expr& e)
+{ boost::apply_visitor(printer(os), e); return os; }
+
+
+template <typename Iter, typename Skipper = qi::space_type>
+    struct parser : qi::grammar<Iter, expr(), Skipper>
+{
+    parser() : parser::base_type(expr_)
+    {
+        using namespace qi;
+
+        expr_ = 
+            (
+                ( ("not"  >   simple_ [_val = phx::construct<unop<op_not>>(_1)]       )) 
+                |
+                ( ("sub"  >   int_ [_val = phx::construct<unop<op_subform>>(_1)]       )) 
+                |
+                ( ("globally"  >   simple_ [_val = phx::construct<unop<op_globally>>(_1)]       )) 
+                |
+                ( ("finally"  >   simple_ [_val = phx::construct<unop<op_finally>>(_1)]       )) 
+            #if GF_FRAGMENT
+                //
+            #else
+                |
+                ( ("next"  >   simple_ [_val = phx::construct<unop<op_next>>(_1)]       ))  
+            #endif
+                |
+                simple_    [_val = phx::construct<expr>(_1)])
+
+            >> *( 
+                    ("and"  >>  simple_ [_val = phx::construct<binop<op_and>>(_val, _1)]  )
+                    |
+                    ("or"   >>  simple_ [_val = phx::construct<binop<op_or>>(_val, _1)]   )
+                #if GF_FRAGMENT
+                    //
+                #else
+                    |
+                    ("until"   >>  simple_ [_val = phx::construct<binop<op_until>>(_val, _1)]   )   
+                #endif
+                    |
+                    ("not"  >   simple_ [_val = phx::construct<unop<op_not>>(_val)]       )  
+                );
+
+        simple_ = (('(' > expr_ > ')') | var_);
+        var_ = qi::lexeme[ +alpha ];
+
+
+        BOOST_SPIRIT_DEBUG_NODE(expr_);
+        BOOST_SPIRIT_DEBUG_NODE(simple_);
+        BOOST_SPIRIT_DEBUG_NODE(var_);
+    }
+
+    private:
+    qi::rule<Iter, var() , Skipper> var_;
+    qi::rule<Iter, expr(), Skipper> simple_, expr_;
+};
+
+
+/*
+
+int main()
+{
+    for (auto& input : std::list<std::string> {
+
+            /// Simpler tests:
+            "a until b;",
+            "(a or b);",
+            "sub 3;",
+            "next (globally a);",
+            "not a and b;",
+            "not (a until (finally b));",
+            })
+    {
+        auto f(std::begin(input)), l(std::end(input));
+        parser<decltype(f)> p;
+
+        try
+        {
+            expr result;
+            bool ok = qi::phrase_parse(f,l,p > ';',qi::space,result);
+
+            if (!ok)
+                std::cerr << "invalid input\n";
+            else
+                std::cout << "result: " << result << "\n";
+
+        } catch (const qi::expectation_failure<decltype(f)>& e)
+        {
+            std::cerr << "expectation_failure at '" << std::string(e.first, e.last) << "'\n";
+        }
+
+        if (f!=l) std::cerr << "unparsed: '" << std::string(f,l) << "'\n";
+    }
+
+    return 0;
+}
+
+*/
