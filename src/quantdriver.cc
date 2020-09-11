@@ -292,3 +292,86 @@ void Trace::construct_bit_matrices(z3::context &c, const int ast_size){
     void Trace::compute_prop_counts(){
         // compute not prop instances together
     }
+
+    void constructConstraints(Node *astRoot, Trace *trace, const int ast_size){
+
+    }
+
+    void scoreConstraints(Node *astRoot, Trace *trace, const int ast_size){
+
+    }
+
+    double valuation(Node *node, int pos, Trace *trace){
+        double val;
+        ltl_op op = node->label;
+        if (op == Proposition){
+            if(isPropExistAtPos(pos,trace,op)){
+                return 1.0
+            }
+            return 0.0;
+        }
+        else if(op == Not){
+            return std::max(0.0,valuation(node->left,pos,trace));
+        }
+        else if(op == Or){
+            (valuation(node->left,pos,trace) + valuation(node->right,pos,trace))/2;
+        }
+        else if(op == And){
+            valuation(node->left,pos,trace) * valuation(node->right,pos,trace);
+        }
+        else if(op == Globally){
+            Node *leftNode = node->left;
+            if(leftNode->label == Proposition){
+                //if Gp types of formula
+                for(auto &itr : (trace->prop_inst.find(op).instances)){ //remove loop if possible
+                    if (itr.position == pos){
+                        if(itr.num_after == (trace->length - pos-1)){
+                            return 1.0;
+                        }
+                        else{
+                            return 0.0;
+                        }
+                    }
+                }
+                return 0.0;
+            }
+            else{
+                //If G(S2) types then add constraints
+            }
+
+        }
+        else if (op == Finally){
+            Node *leftNode = node->left;
+                if(leftNode->label == Proposition){
+                    //Fp types of formula
+                    for(auto &itr : (trace->prop_inst.find(op).instances)){ //remove loop if possible
+                        if (itr.position == pos){
+                            if(itr.pos_next > 0){ //Assume default value of pos_next is negative
+                                return 1.0;
+                            }
+                            else{
+                                return 0.0;
+                            }
+                        }
+                    }
+                    return 0.0;
+                }
+                else{
+                    //if F(S2) types then add constraints
+                }
+                
+        }
+        else if(op == Until){ // Not able to find the Until operator
+        
+        }
+
+        return val;
+    }
+
+    bool isPropExistAtPos(int pos,Trace *trace,ltl_op op){
+        for(auto &itr : (trace->prop_inst.find(op).instances)){ //remove loop if possible
+            if (itr.position == pos){
+                return true;
+            }
+        return false;   
+    }
