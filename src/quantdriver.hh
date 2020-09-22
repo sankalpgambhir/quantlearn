@@ -53,6 +53,7 @@ struct Node{
         this->destroy_children();
     }
 
+    int id;
     ltl_op label;
     int subformula_size;
     std::string prop_label;
@@ -98,7 +99,9 @@ struct Trace{
     int length;
 
     void construct_bit_matrices(z3::context& c, const int ast_size);
+    void construct_bit_matrices1(z3::context& c, const int ast_size);//Consider only one from line number 100,101
     void compute_prop_counts();
+
 
     // calculating stuff for this trace
     // Not sure about usage of z3::expr_vector. Possible optimization?
