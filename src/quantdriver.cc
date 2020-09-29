@@ -487,10 +487,3 @@ std::vector<std::vector<z3::expr>> constructConstraints(z3::context &c, Node *as
         
     return nodeScoreCons;
 }
-
-
- 
-
-
-
- 
