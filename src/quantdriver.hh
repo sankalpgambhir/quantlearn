@@ -34,11 +34,11 @@ extern std::map<ltl_op, char> operators;
 const int op_arity(ltl_op o);
 
 struct Node{
-    Node()  : label(Empty), subformula_size(0), prop_label(""), 
+    Node()  : label(Empty), subformula_size(0), prop_label(__empty), 
                 left(nullptr), right(nullptr){}
 
     Node(Node& copy, ltl_op new_label = Empty) 
-            : subformula_size(0), prop_label(""), 
+            : subformula_size(0), prop_label(__empty), 
                 left(nullptr), right(nullptr){
         if (new_label == Empty){
             this->label = copy.label;
