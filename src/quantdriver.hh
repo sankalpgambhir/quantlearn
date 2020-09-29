@@ -57,6 +57,7 @@ struct Node{
     int subformula_size;
     std::string prop_label;
     Node *left, *right;
+    std::vector<std::vector<bool> > holds;
 
     void destroy_children(){
         if(left){
@@ -87,6 +88,9 @@ struct Trace{
             int num_after;
             int pos_next;
         };
+
+        proposition(std::string n) : name(n){}
+        proposition() {}
 
         std::string name;
         std::vector<instance> instances; // <position, props after, next prop>

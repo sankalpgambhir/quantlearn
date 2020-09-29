@@ -82,13 +82,11 @@ bool QuantDriver::parse_traces(const std::fstream *source){
         if(str[i] == PROP_DELIMITER){
             // check prop
             if(curr_trace.prop_inst.find(temp_prop) == curr_trace.prop_inst.end()){
-                // add new prop
-                // TODO deal with this weird error for insertion?
-                /*curr_trace.prop_inst.insert(
-                    std::pair<std::string, Trace::proposition>(temp_prop, 
-                                                                Trace::proposition())
-                );*/
-                // Double insertion for Not prop
+                // add new prop to EVERY trace
+                // if it's not in this trace, it's not in any trace
+                for(auto t : *(this->traces)){
+                    t.prop_inst.insert({temp_prop, Trace::proposition(temp_prop)});
+                }
             }
 
             // add new instance of prop
@@ -111,16 +109,14 @@ bool QuantDriver::parse_traces(const std::fstream *source){
             continue;
         }
         if(str[i] == TRACE_DELIMITER){
-            // let every trace individually compute while we go on
-            // do NOT use curr_trace for async, since it'll be modified 
-            // this breaks things in unimaginable ways
-            async_trace_comp.emplace_back(
-                std::async(&Trace::compute_optimizations, this->traces->back()));
 
             this->traces->emplace_back();
             curr_trace = this->traces->back();
             curr_step = 0;
 
+            // add all old props to new trace
+            for(auto m : this->traces->front().prop_inst)
+                curr_trace.prop_inst.insert({m.first, Trace::proposition(m.first)});
             continue;
         }
 
@@ -128,6 +124,14 @@ bool QuantDriver::parse_traces(const std::fstream *source){
         temp_prop += str[i];
 
     }
+
+    // let every trace individually compute while we go on
+    // do NOT use curr_trace for async, since it'll be modified 
+    // this breaks things in unimaginable ways
+    // trace computations moved to the end to allow all propositions to be collected.
+    for(auto t : *(this->traces))
+    async_trace_comp.emplace_back(
+        std::async(&Trace::compute_optimizations, t));
 
     // make sure all trace computations finished
     for(auto &comp : async_trace_comp){
