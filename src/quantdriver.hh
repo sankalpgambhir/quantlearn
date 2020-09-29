@@ -11,7 +11,6 @@
 #include <future>
 #include <algorithm>
 #include "configuration.hh"
-#include "parser.hh"
 
 enum ltl_op {
     Empty, // Free
@@ -99,6 +98,8 @@ struct Trace{
 
     void construct_bit_matrices(z3::context& c, const int ast_size);
     void compute_prop_counts();
+    void compute_not_props();
+    void compute_optimizations();
 
     // calculating stuff for this trace
     // Not sure about usage of z3::expr_vector. Possible optimization?

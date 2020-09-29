@@ -3,6 +3,7 @@
 #include <boost/spirit/include/phoenix_operator.hpp>
 #include <boost/variant/recursive_wrapper.hpp>
 #include "configuration.hh"
+#include "quantdriver.hh"
 
 namespace Parser {
 
@@ -168,24 +169,29 @@ template <typename Iter, typename Skipper = qi::space_type>
     qi::rule<Iter, var() , Skipper> var_;
     qi::rule<Iter, expr(), Skipper> simple_, expr_;
 };
-/*
-bool copy_into_ast(Node*, expr);
 
-bool parse_into_ast(Node* ast, std::string::const_iterator f, std::string::const_iterator l){
-    parser<decltype(f)> p;
+template <typename Node, typename Iter = std::string::const_iterator>
+bool parse_into_ast(Node* ast, Iter f, Iter l){
+    parser<Iter> p;
 
         try
         {
             expr result;
             bool ok = qi::phrase_parse(f,l,p > ';',qi::space,result);
 
-            if (!ok)
+            if (!ok){
                 Configuration::throw_error("Could not parse formula!");
                 return false;
-            else
+            }
+            else{
                 std::cout << "result: " << result << "\n";
+                // move into ast
+                if(!copy_to_ast(ast, result)){
+                    Configuration::throw_error("Could not parse into AST!");
+                }
+            }
 
-        } catch (const qi::expectation_failure<decltype(f)>& e)
+        } catch (const qi::expectation_failure<Iter>& e)
         {
             std::string errstr = "Expectation failure at " + std::string(e.first, e.last) + "\n";
             Configuration::throw_error(errstr);
@@ -193,18 +199,40 @@ bool parse_into_ast(Node* ast, std::string::const_iterator f, std::string::const
 
         if (f!=l) std::cerr << "unparsed: '" << std::string(f,l) << "'\n";
 
-    // move into ast
-    if(!copy_to_ast(ast, result)){
-        Configuration::throw_error("Could not parse into AST!");
-    }
-
     return true;
-}
+};
 
-bool copy_to_ast(Node* ast, expr result){
-    return true;
-}
-*/
+template <typename Node, typename expres>
+struct copier{
+    // kinda dumb, make it nicer probably
+    static bool copy_expr(Node* a, var v){a->label = ltl_op::Proposition; a->prop_label = v; return true;}
+    static bool copy_expr(Node* a, int i){a->label = ltl_op::Subformula; a->subformula_size = i; return true;}
+
+    static bool copy_expr(Node* a, unop<op_not> u){a->label = ltl_op::Not; copy_expr(a->l, u.oper1); return true;}
+    static bool copy_expr(Node* a, unop<op_globally> u){a->label = ltl_op::Globally; copy_expr(a->l, u.oper1); return true;}
+    static bool copy_expr(Node* a, unop<op_finally> u){a->label = ltl_op::Finally; copy_expr(a->l, u.oper1); return true;}
+    static bool copy_expr(Node* a, unop<op_subform> u){a->label = ltl_op::Subformula; copy_expr(a->l, u.oper1); return true;}
+
+    #if GF_FRAGMENT
+        //
+    #else
+    static bool copy_expr(Node* a, unop<op_next> u){a->label = ltl_op::Next; copy_expr(a->l, u.oper1); return true;}
+    static bool copy_expr(Node* a, binop<op_until> b){a->label = ltl_op::Until; copy_expr(a->l, b.oper1); copy_expr(a->r, b.oper2); return true;}
+    #endif
+
+    static bool copy_expr(Node* a, binop<op_and> b){a->label = ltl_op::And; copy_expr(a->l, b.oper1); copy_expr(a->r, b.oper2); return true;}
+    static bool copy_expr(Node* a, binop<op_or> b){a->label = ltl_op::Or; copy_expr(a->l, b.oper1); copy_expr(a->r, b.oper2); return true;}
+
+    static bool copy_expr(Node* a, expres e){return false;}
+};
+
+template <typename Node, typename expres = expr>
+    bool copy_to_ast(Node* ast, expres res){
+
+    return copier<Node, expres>::copy_expr(ast, res);
+
+};
+
 
 }
 

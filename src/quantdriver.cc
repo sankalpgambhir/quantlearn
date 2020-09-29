@@ -1,4 +1,5 @@
 #include "quantdriver.hh"
+#include "parser.hh"
 
 // initialize static variables as needed
 int Trace::trace_count = 0;
@@ -114,7 +115,7 @@ bool QuantDriver::parse_traces(const std::fstream *source){
             // do NOT use curr_trace for async, since it'll be modified 
             // this breaks things in unimaginable ways
             async_trace_comp.emplace_back(
-                std::async(&Trace::compute_prop_counts, this->traces->back()));
+                std::async(&Trace::compute_optimizations, this->traces->back()));
 
             this->traces->emplace_back();
             curr_trace = this->traces->back();
@@ -139,12 +140,8 @@ bool QuantDriver::parse_traces(const std::fstream *source){
 bool QuantDriver::parse_formula(const std::string formula){
     // initialize parser 
     auto f (std::begin(formula)), l (std::end(formula));
-    Parser::parse_into_ast(ast, f, l)
+    Parser::parse_into_ast<Node, decltype(f)>(ast, f, l);
 
-    
-
-    // do actual parsing
-    // format for formulae??
     return true;
 }
 
@@ -287,45 +284,112 @@ void Trace::construct_bit_matrices(z3::context &c, const int ast_size){
                 xp.back().push_back(c.bool_const(name.c_str()));
             }
         }
+}
+
+void Trace::compute_prop_counts(){
+    // compute prop optimizations
+    for(auto m : this->prop_inst){
+        auto p = m.second;
+        int count = 0;
+        for (auto i = p.instances.begin(); i != p.instances.end(); i++){
+            count = 0;
+            auto j = i;
+            while((*(j+1)).position - (*j).position == 1){
+                count++;
+                j++;
+            }
+            (*i).num_after = count;
+            (*i).pos_next = (*(i+1)).position - (*i).position; // redundant? Can use iterators directly instead
+        }
     }
+}
 
-    void Trace::compute_prop_counts(){
-        // compute not prop instances together
+void Trace::compute_not_props(){
+    // compute prop optimizations
+    auto mod_map = this->prop_inst;
+    for(auto m : this->prop_inst){
+        auto s = m.first;
+        auto p = m.second;
+
+        proposition np; // create a not prop
+        np.name = "~" + s;
+        np.instances.clear(); // make sure we're empty
+
+
+        auto it = p.instances.begin();
+
+        for(int i = 0; i < this->length; i++){
+            if((*it).position == i){
+                if(it != p.instances.end()){
+                    it++;
+                } // else we have reached the end of p, keep adding ~p
+                continue; // ~p doesn't hold here
+            }
+            np.instances.emplace_back(i); // ~p here
+        }
+
     }
+}
 
-    void constructConstraints(Node *astRoot, Trace *trace, const int ast_size){
+void Trace::compute_optimizations(){
+    this->compute_not_props();
+    this->compute_prop_counts();
+}
 
+void constructConstraints(Node *astRoot, Trace *trace, const int ast_size){
+
+}
+
+void scoreConstraints(Node *astRoot, Trace *trace, const int ast_size){
+
+}
+
+double valuation(Node *node, int pos, Trace *trace){
+    double val;
+    ltl_op op = node->label;
+    if (op == Proposition){
+        if(isPropExistAtPos(pos,trace,op)){
+            return 1.0
+        }
+        return 0.0;
     }
-
-    void scoreConstraints(Node *astRoot, Trace *trace, const int ast_size){
-
+    else if(op == Not){
+        return std::max(0.0,valuation(node->left,pos,trace));
     }
-
-    double valuation(Node *node, int pos, Trace *trace){
-        double val;
-        ltl_op op = node->label;
-        if (op == Proposition){
-            if(isPropExistAtPos(pos,trace,op)){
-                return 1.0
+    else if(op == Or){
+        (valuation(node->left,pos,trace) + valuation(node->right,pos,trace))/2;
+    }
+    else if(op == And){
+        valuation(node->left,pos,trace) * valuation(node->right,pos,trace);
+    }
+    else if(op == Globally){
+        Node *leftNode = node->left;
+        if(leftNode->label == Proposition){
+            //if Gp types of formula
+            for(auto &itr : (trace->prop_inst.find(op).instances)){ //remove loop if possible
+                if (itr.position == pos){
+                    if(itr.num_after == (trace->length - pos-1)){
+                        return 1.0;
+                    }
+                    else{
+                        return 0.0;
+                    }
+                }
             }
             return 0.0;
         }
-        else if(op == Not){
-            return std::max(0.0,valuation(node->left,pos,trace));
+        else{
+            //If G(S2) types then add constraints
         }
-        else if(op == Or){
-            (valuation(node->left,pos,trace) + valuation(node->right,pos,trace))/2;
-        }
-        else if(op == And){
-            valuation(node->left,pos,trace) * valuation(node->right,pos,trace);
-        }
-        else if(op == Globally){
-            Node *leftNode = node->left;
+
+    }
+    else if (op == Finally){
+        Node *leftNode = node->left;
             if(leftNode->label == Proposition){
-                //if Gp types of formula
+                //Fp types of formula
                 for(auto &itr : (trace->prop_inst.find(op).instances)){ //remove loop if possible
                     if (itr.position == pos){
-                        if(itr.num_after == (trace->length - pos-1)){
+                        if(itr.pos_next > 0){ //Assume default value of pos_next is negative
                             return 1.0;
                         }
                         else{
@@ -336,42 +400,24 @@ void Trace::construct_bit_matrices(z3::context &c, const int ast_size){
                 return 0.0;
             }
             else{
-                //If G(S2) types then add constraints
+                //if F(S2) types then add constraints
             }
-
-        }
-        else if (op == Finally){
-            Node *leftNode = node->left;
-                if(leftNode->label == Proposition){
-                    //Fp types of formula
-                    for(auto &itr : (trace->prop_inst.find(op).instances)){ //remove loop if possible
-                        if (itr.position == pos){
-                            if(itr.pos_next > 0){ //Assume default value of pos_next is negative
-                                return 1.0;
-                            }
-                            else{
-                                return 0.0;
-                            }
-                        }
-                    }
-                    return 0.0;
-                }
-                else{
-                    //if F(S2) types then add constraints
-                }
-                
-        }
-        else if(op == Until){ // Not able to find the Until operator
-        
-        }
-
-        return val;
+            
+    }
+    else if(op == Until){ // Not able to find the Until operator
+    
     }
 
-    bool isPropExistAtPos(int pos,Trace *trace,ltl_op op){
-        for(auto &itr : (trace->prop_inst.find(op).instances)){ //remove loop if possible
-            if (itr.position == pos){
-                return true;
-            }
-        return false;   
+    return val;
+}
+
+bool isPropExistAtPos(int pos,Trace *trace,ltl_op op){
+    for(auto &itr : (trace->prop_inst.find(op).instances)){ //remove loop if possible
+        if (itr.position == pos){
+            return true;
+        }
+        else{
+            return false;
+        }
     }
+}
