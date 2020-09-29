@@ -348,23 +348,15 @@ void scoreConstraints(Node *astRoot, Trace *trace, const int ast_size){
 
 }
 
-double valuation(Node *node, int pos, Trace *trace){
-    double val;
-    ltl_op op = node->label;
-    if (op == Proposition){
-        if(isPropExistAtPos(pos,trace,op)){
-            return 1.0
+bool isPropExistAtPos(int pos,Trace *trace, std::string prop_name){
+    for(auto &itr : ((((trace->prop_inst).find(prop_name))->second).instances)){ //remove loop if possible
+        if (itr.position == pos){
+            return true;
         }
-        return 0.0;
+        return false;   
     }
-    else if(op == Not){
-        return std::max(0.0,valuation(node->left,pos,trace));
-    }
-    else if(op == Or){
-        (valuation(node->left,pos,trace) + valuation(node->right,pos,trace))/2;
-    }
-    else if(op == And){
-        valuation(node->left,pos,trace) * valuation(node->right,pos,trace);
+}
+
 
 void Trace::construct_bit_matrices1(z3::context &c, const int ast_size){
     for(int i=0;i<ast_size;i++){
@@ -384,19 +376,6 @@ void Trace::construct_bit_matrices1(z3::context &c, const int ast_size){
     }
 }    
 
-
-
-
-
-
-bool isPropExistAtPos(int pos,Trace *trace,string prop_name){
-    for(auto &itr : ((((trace->prop_inst).find(prop_name))->second).instances)){ //remove loop if possible
-        if (itr.position == pos){
-            return true;
-        }
-        return false;   
-    }
-}
 
 
 z3::expr valuation(z3::context &c, Node *node, int pos, Trace *trace){
@@ -509,9 +488,6 @@ std::vector<std::vector<z3::expr>> constructConstraints(z3::context &c, Node *as
     return nodeScoreCons;
 }
 
-    void scoreConstraints(Node *astRoot, Trace *trace, const int ast_size){
-        
-    }
 
  
 
