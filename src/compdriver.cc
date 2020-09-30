@@ -65,7 +65,7 @@ comp::CompDriver::CompDriver(const std::fstream* source, const int max_depth){
     std::cout << std::fixed;
     std::cout << std::setprecision(3); // limit score printing
 
-    for(int i = 0; (i < NUM_TO_PRINT) && (i < this->scores.size())){
+    for(int i = 0; (i < NUM_TO_PRINT) && (i < this->scores.size()); i++){
         std::cout << '\n' << i << ". " << this->scores[i].first << '\t' << this->scores[i].second;
     }
 
