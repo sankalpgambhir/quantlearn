@@ -32,6 +32,7 @@ namespace Configuration{
     extern void throw_error(std::string);
     extern po::options_description desc;
     extern po::variables_map vm;
+    extern int max_depth;
 }
 
 #endif

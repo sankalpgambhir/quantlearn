@@ -1,6 +1,7 @@
 
 #include "configuration.hh"
 #include "quantdriver.hh"
+#include "compdriver.hh"
 #include <iostream>
 
 
@@ -36,23 +37,34 @@ int main(int argc, char* argv[]){
     }
 
     std::string formula = Configuration::vm["formula"].as<std::string>();
-
-    // instantiate a driver, create a context
-    QuantDriver *driver = new QuantDriver(source, formula);
-
-    // check if initialization and parsing was fine
-    if(QuantDriver::error_flag != OK){
-        return QuantDriver::error_flag;
+    
+    if (Configuration::vm.count("max-depth")){
+        Configuration::throw_error("Max depth not specified, defaulting to 3");
     }
 
-    // run driver
-    driver->run();
+    int error_flag = 0;
+
+    // instantiate a driver, create a context
+    if (Configuration::vm.count("composition")){
+        comp::CompDriver *driver = new comp::CompDriver(source, Configuration::max_depth);
+        error_flag = driver->error_flag;
+        delete driver;
+    }
+    else {
+        QuantDriver *driver = new QuantDriver(source, formula);
+        error_flag = driver->error_flag;
+        delete driver;
+    }
+
+    // check if initialization and parsing was fine
+    if(error_flag != OK){
+        return error_flag;
+    }
 
     // print obtained result
 
     // destroy internals and delete driver
     source->close();
-    delete driver;
 
     return OK;
 }
