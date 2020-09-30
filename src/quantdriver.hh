@@ -3,6 +3,7 @@
 
 #include <string>
 #include <vector>
+#include <cmath>
 #include <map>
 #include <z3++.h>
 #include <fstream>
@@ -32,6 +33,8 @@ enum ltl_op {
 extern std::map<ltl_op, char> operators;
 
 const int op_arity(ltl_op o);
+
+inline const float retarder(float);
 
 struct Node{
     Node()  : label(Empty), subformula_size(0), prop_label(__empty), 

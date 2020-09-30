@@ -298,6 +298,10 @@ const int op_arity(ltl_op o){
     }
 }
 
+inline const float retarder(float f){
+    return exp(f);
+}
+
 void Trace::construct_bit_matrices(z3::context &c, const int ast_size){
         // construct operator matrix
         for(int i = 1; i <= Proposition; i++){
