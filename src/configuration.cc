@@ -5,6 +5,7 @@ namespace Configuration
 {
     po::options_description desc("Options");
     po::variables_map vm;
+    int max_depth;
 
     void init_options(){
         desc.add_options()
