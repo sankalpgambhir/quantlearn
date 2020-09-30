@@ -75,7 +75,7 @@ struct Node{
         }
     }
 
-    friend std::ostream& operator << (std::ostream& os, const Node* n);
+    friend std::ostream& operator << (std::ostream& os, Node const* n);
 
 };
 
@@ -148,7 +148,7 @@ class QuantDriver{
         void run();
         void run_parallel();
 
-        static int error_flag;
+        int error_flag;
         static int ast_size;
         Result result;
 

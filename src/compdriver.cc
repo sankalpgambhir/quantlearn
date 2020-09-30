@@ -1,5 +1,7 @@
 #include "compdriver.hh"
 
+extern std::ostream& operator << (std::ostream& os, Node const* n);
+
 comp::CompDriver::CompDriver(const std::fstream* source, const int max_depth){
     // parse the traces
     if(!parse_traces(source)){
@@ -121,6 +123,87 @@ void comp::CompDriver::run(){
     if(!this->compose()){
         Configuration::throw_error("No formulas of higher depth available");
     }
+}
+
+bool comp::CompDriver::parse_traces(const std::fstream *source){
+    std::ostringstream ss;
+    ss << source->rdbuf(); // reading data
+    std::string str = ss.str();
+
+    // clean whitespace
+    str.erase(std::remove_if(str.begin(), str.end(), isspace), str.end()); 
+    
+    this->traces->emplace_back();
+    Trace curr_trace = this->traces->back();
+
+    std::string temp_prop = __empty;
+    std::string temp_step = __empty;
+    int curr_step = 0;
+
+    // hold futures for trace computations
+    std::vector<std::future<void> > async_trace_comp;
+
+    for(int i = 0; i < str.length(); i++){
+        if(str[i] == PROP_DELIMITER){
+            // check prop
+            if(curr_trace.prop_inst.find(temp_prop) == curr_trace.prop_inst.end()){
+                // add new prop to EVERY trace
+                // if it's not in this trace, it's not in any trace
+                for(auto t : *(this->traces)){
+                    t.prop_inst.insert({temp_prop, Trace::proposition(temp_prop)});
+                }
+            }
+
+            // add new instance of prop
+            curr_trace.prop_inst[temp_prop].instances.emplace_back(curr_step);
+        
+            // add prop to trace
+            temp_step += temp_prop;
+            temp_prop = __empty;
+            temp_step += " ";
+
+            continue;
+
+        }
+        if(str[i] == STEP_DELIMITER){
+            // tie up trace
+            // compute props
+            curr_trace.trace_string.back().emplace_back(temp_step);
+            temp_step = __empty;
+            curr_step++;
+            continue;
+        }
+        if(str[i] == TRACE_DELIMITER){
+
+            this->traces->emplace_back();
+            curr_trace = this->traces->back();
+            curr_step = 0;
+
+            // add all old props to new trace
+            for(auto m : this->traces->front().prop_inst)
+                curr_trace.prop_inst.insert({m.first, Trace::proposition(m.first)});
+            continue;
+        }
+
+        // not a delimiter, move on
+        temp_prop += str[i];
+
+    }
+
+    // let every trace individually compute while we go on
+    // do NOT use curr_trace for async, since it'll be modified 
+    // this breaks things in unimaginable ways
+    // trace computations moved to the end to allow all propositions to be collected.
+    for(auto t : *(this->traces))
+    async_trace_comp.emplace_back(
+        std::async(&Trace::compute_optimizations, t));
+
+    // make sure all trace computations finished
+    for(auto &comp : async_trace_comp){
+        comp.get();
+    }
+
+    return true;
 }
 
 bool comp::CompDriver::check(Node* f, Trace* t, const int i){

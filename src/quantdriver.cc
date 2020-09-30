@@ -4,7 +4,6 @@
 // initialize static variables as needed
 int Trace::trace_count = 0;
 int QuantDriver::ast_size = 0;
-int QuantDriver::error_flag = 0;
 
 std::map<ltl_op, char> operators = {
     {Empty , (char) 0}, // Free
@@ -23,7 +22,7 @@ std::map<ltl_op, char> operators = {
     {Proposition , (char) 0}
 };
 
-std::ostream& operator << (std::ostream& os, Node* n){
+std::ostream& operator << (std::ostream& os, Node const* n){
 
     switch (op_arity(n->label))
     {

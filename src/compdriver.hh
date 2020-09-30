@@ -13,17 +13,16 @@ class CompDriver final{
         CompDriver(const CompDriver&) = delete;
         CompDriver& operator=(const CompDriver&) = delete;
 
-        ~CompDriver();
+        ~CompDriver(){}
 
         void run();
         void run_parallel();
 
-        static int error_flag;
+        int error_flag;
         Result result;
 
     private:
         bool parse_traces(const std::fstream* source);
-        bool parse_formula(const std::string formula);
 
         static void construct_ast(Node* ast, int depth);
         bool check(Node*, Trace*, const int = 0);
