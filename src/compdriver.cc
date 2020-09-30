@@ -50,6 +50,12 @@ comp::CompDriver::CompDriver(const std::fstream* source, const int max_depth){
     for(auto f : form_set){
         std::cout << f;
     }
+
+    // compute scores
+    for(int i = 0; i < form_set.size(); i++){
+        this->scores.push_back({form_set[i], compute_score(form_set[i])});
+    }
+
 }
 
 void comp::CompDriver::run(){
@@ -266,4 +272,105 @@ bool comp::CompDriver::compose(){
     form_set.erase(form_set.begin(), form_set.begin() + prev_size);
 
     return true;
+}
+
+float comp::CompDriver::compute_score(Node* f){
+
+    std::vector<float> t_scores;
+
+    for(auto t : *(this->traces)){
+
+        t_scores.emplace_back(compute_trace_score(f, &t));
+
+        switch (f->label)
+        {
+            case ltl_op::Proposition:
+
+                break;
+
+            case ltl_op::And:
+                t_scores.emplace_back(compute_score(f->left) * compute_score(f->right));
+                break;
+
+            case ltl_op::Or:
+                t_scores.emplace_back( (compute_score(f->left) + compute_score(f->right))/2.0 );
+                break;
+
+            case ltl_op::Globally:
+
+                break;
+
+            case ltl_op::Finally:
+
+                break;
+
+            default: // not respecting GF
+                Configuration::throw_error("Invalid formula type for score calculation");
+                // terminate here? or continue and return 0?
+                break;
+        }
+
+    }
+
+    return 0.0;
+}
+
+
+
+float comp::CompDriver::compute_trace_score(Node* f, Trace* t, const int pos){
+
+    assert(pos < t->length);
+
+    float res = 0;
+
+    auto t_iter = std::find(this->traces->begin(), this->traces->end(), *t);
+    assert(t_iter != this->traces->end());
+
+    int t_index = std::distance(this->traces->begin(), t_iter);
+
+    int l_pos, count;
+
+    switch (f->label)
+    {
+        case ltl_op::Proposition:
+            return float(f->holds[t_index][pos]);
+
+        case ltl_op::And:
+            return compute_trace_score(f->left, t, pos) * compute_trace_score(f->right, t, pos);
+
+        case ltl_op::Or:
+            return (compute_trace_score(f->left, t, pos) + compute_trace_score(f->right, t, pos)) / 2.0;
+
+        case ltl_op::Globally:
+
+            res = 0;
+
+            for(int i = pos; i < t->length; i++){
+                res += retarder(i - pos) * compute_trace_score(f->left, t, i);
+            }
+
+            return res;
+
+        case ltl_op::Finally:
+
+            res = 0;
+            count = 0;
+
+            for(int i = pos; i < t->length; i++){
+                if(f->left->holds[t_index][i]){
+                    res += retarder(i - pos) * compute_trace_score(f->left, t, i);
+                    count++;
+                    break; // only consider first, remove to average
+                }
+            }            
+
+            return res / (float) count;
+
+        default: // not respecting GF
+            Configuration::throw_error("Invalid formula type for score calculation");
+            // terminate here? or continue and return 0?
+            break;
+    }
+
+    return 0.0;
 }
