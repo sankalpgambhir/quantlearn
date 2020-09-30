@@ -12,6 +12,7 @@
 #define STEP_DELIMITER ';'
 #define PROP_DELIMITER ','
 #define MAX_DEPTH_DEFAULT 3
+#define NUM_TO_PRINT 5
 
 // config based switches
 

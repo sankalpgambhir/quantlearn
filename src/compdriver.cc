@@ -56,6 +56,19 @@ comp::CompDriver::CompDriver(const std::fstream* source, const int max_depth){
         this->scores.push_back({form_set[i], compute_score(form_set[i])});
     }
 
+    // sort scores
+    std::sort(this->scores.begin(), this->scores.end(),
+                    [](const std::pair<Node*, float> &a, const std::pair<Node*, float> &b){
+                        return a.second > b.second;
+                    });
+
+    std::cout << std::fixed;
+    std::cout << std::setprecision(3); // limit score printing
+
+    for(int i = 0; (i < NUM_TO_PRINT) && (i < this->scores.size())){
+        std::cout << '\n' << i << ". " << this->scores[i].first << '\t' << this->scores[i].second;
+    }
+
 }
 
 void comp::CompDriver::run(){
@@ -279,40 +292,13 @@ float comp::CompDriver::compute_score(Node* f){
     std::vector<float> t_scores;
 
     for(auto t : *(this->traces)){
-
         t_scores.emplace_back(compute_trace_score(f, &t));
-
-        switch (f->label)
-        {
-            case ltl_op::Proposition:
-
-                break;
-
-            case ltl_op::And:
-                t_scores.emplace_back(compute_score(f->left) * compute_score(f->right));
-                break;
-
-            case ltl_op::Or:
-                t_scores.emplace_back( (compute_score(f->left) + compute_score(f->right))/2.0 );
-                break;
-
-            case ltl_op::Globally:
-
-                break;
-
-            case ltl_op::Finally:
-
-                break;
-
-            default: // not respecting GF
-                Configuration::throw_error("Invalid formula type for score calculation");
-                // terminate here? or continue and return 0?
-                break;
-        }
-
     }
 
-    return 0.0;
+    // process trace scores
+    // todo
+
+    return std::accumulate(t_scores.begin(), t_scores.end(), 0);
 }
 
 

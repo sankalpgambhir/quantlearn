@@ -1,4 +1,6 @@
 #include "quantdriver.hh"
+#include <numeric>
+#include <iomanip>
 
 namespace comp{
 
