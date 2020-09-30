@@ -28,7 +28,8 @@ class CompDriver final{
         bool compute_holds(Node*);
         bool compose();
 
-        std::vector<Node*> form_set;
+        std::vector<Node*> form_set; // formulae in current computation
+        std::vector<Node*> used_form; // formulae of lower depth previously used, kept for compositions
 
         std::vector<Trace> *traces;
 

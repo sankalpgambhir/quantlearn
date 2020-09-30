@@ -28,12 +28,12 @@ comp::CompDriver::CompDriver(const std::fstream* source, const int max_depth){
     // form_set = {G, F} x prop_set
     // a trailer for composition collector later
     int prev_size = form_set.size();
-    for(auto f : form_set){
+    for(int i = 0; i < prev_size; i++){
         for(auto op : {ltl_op::Globally, ltl_op::Finally}){
             form_set.emplace_back();
             auto curr = form_set.back();
             curr->label = op;
-            curr->left = f;
+            curr->left = form_set[i];
         }
     }
     // done adding depth 1 formulae, remove depth zero
@@ -211,7 +211,53 @@ bool comp::CompDriver::compute_holds(Node* f){
 }
 
 bool comp::CompDriver::compose(){
-    // todo
+    // add depth n formulae from the current set of depth n-1
+
+    if(form_set.empty()){
+        return false;
+    }
+
+    int prev_size = form_set.size();
+
+    // unary
+    for(int i = 0; i < prev_size; i++){
+        for(auto op : {ltl_op::Globally, ltl_op::Finally}){
+            form_set.emplace_back();
+            auto curr = form_set.back();
+            curr->label = op;
+            curr->left = form_set[i];
+        }
+    }
+
+    // binary
+    for(int i = 0; i < prev_size; i++){
+        for(int j = 0; j < prev_size; i++){ // compositions of current depth
+            for(auto op : {ltl_op::And, ltl_op::Or}){
+                form_set.emplace_back();
+                auto curr = form_set.back();
+                curr->label = op;
+                curr->left = form_set[i];
+                curr->right = form_set[j];
+            }
+        }
+        for(auto f : used_form){ // compositions with lower depths
+            for(auto op : {ltl_op::And, ltl_op::Or}){
+                form_set.emplace_back();
+                auto curr = form_set.back();
+                curr->label = op;
+                curr->left = form_set[i];
+                curr->right = f;
+            }
+        }
+    }
+
+    // move n-1 depth formulae to used_form
+    for(int i = 0; i < prev_size; i++){
+        used_form.push_back(form_set[i]);
+    }
+    
+    // done adding depth n formulae, remove depth n-1
+    form_set.erase(form_set.begin(), form_set.begin() + prev_size);
 
     return true;
 }
