@@ -98,11 +98,17 @@ void comp::CompDriver::run(){
     }
 }
 
-bool comp::CompDriver::check(Node* f, Trace* t, const int i = 0){
+bool comp::CompDriver::check(Node* f, Trace* t, const int i){
 
     assert(f->left);
 
-    std::vector<std::vector<bool> > *left_holds = &(f->left->holds);
+
+    auto t_iter = std::find(this->traces->begin(), this->traces->end(), *t);
+    assert(t_iter != this->traces->end());
+
+    int t_index = std::distance(this->traces->begin(), t_iter);
+
+    auto *left_holds = &(f->left->holds[t_index]);
 
     switch (f->label)
     {
@@ -112,10 +118,10 @@ bool comp::CompDriver::check(Node* f, Trace* t, const int i = 0){
         return check(f->left, t, i) || check(f->right, t, i);
     case ltl_op::Globally:
         // is left child true everywhere? false not found
-        return !(std::find(left_holds->begin() + i, left_holds->end(), false) == left_holds->end());
+        return !(std::find(left_holds->begin() + i, left_holds->end(), false) ==  left_holds->end());
     case ltl_op::Finally:
         // is left child true anywhere? true found - written --> not (true not found)
-        return !(std::find(left_holds->begin() + i, left_holds->end(), true) == left_holds->end());
+        return !(std::find(left_holds->begin() + i,  left_holds->end(), true) ==  left_holds->end());
 
     default: // not respecting one of GF, NNF, and composition
         Configuration::throw_error("Invalid formula type check");
@@ -206,4 +212,6 @@ bool comp::CompDriver::compute_holds(Node* f){
 
 bool comp::CompDriver::compose(){
     // todo
+
+    return true;
 }

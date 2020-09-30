@@ -114,6 +114,11 @@ struct Trace{
     std::vector<std::vector<z3::expr> > xp;
 
     // constraints
+
+    // logistics
+    bool operator==(const Trace& t){
+        return this->id == t.id;
+    }
 };
 
 struct Result{
