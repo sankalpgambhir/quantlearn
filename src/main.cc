@@ -39,7 +39,7 @@ int main(int argc, char* argv[]){
     std::string formula = Configuration::vm["formula"].as<std::string>();
     
     if (Configuration::vm.count("max-depth")){
-        Configuration::throw_error("Max depth not specified, defaulting to 3");
+        Configuration::throw_error("Max depth not specified, defaulting to " + std::to_string(MAX_DEPTH_DEFAULT));
     }
 
     int error_flag = 0;

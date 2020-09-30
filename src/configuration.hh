@@ -11,7 +11,7 @@
 #define TRACE_DELIMITER '#' // TODO: input delimiters from user
 #define STEP_DELIMITER ';'
 #define PROP_DELIMITER ','
-#define MAX_DEPTH_DEFAULT 4
+#define MAX_DEPTH_DEFAULT 3
 
 // config based switches
 
