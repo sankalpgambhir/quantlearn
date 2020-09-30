@@ -44,6 +44,12 @@ comp::CompDriver::CompDriver(const std::fstream* source, const int max_depth){
         this->run();
         // print all the formulas at each step?
     }
+
+    // print all formulae at the end
+
+    for(auto f : form_set){
+        std::cout << f;
+    }
 }
 
 void comp::CompDriver::run(){

@@ -69,6 +69,9 @@ struct Node{
             delete right;
         }
     }
+
+    friend std::ostream& operator << (std::ostream& os, const Node* n);
+
 };
 
 struct Trace{
