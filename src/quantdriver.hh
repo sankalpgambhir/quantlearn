@@ -34,7 +34,9 @@ extern std::map<ltl_op, char> operators;
 
 const int op_arity(ltl_op o);
 
-inline const float retarder(float);
+inline const float retarder(float f){
+    return exp(f);
+}
 
 struct Node{
     Node()  : label(Empty), subformula_size(0), prop_label(__empty), 
