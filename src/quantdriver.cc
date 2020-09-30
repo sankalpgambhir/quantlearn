@@ -51,6 +51,8 @@ std::ostream& operator << (std::ostream& os, Node* n){
     default:
         break;
     }
+
+    return os;
 }
 
 QuantDriver::QuantDriver(const std::fstream* source, const std::string formula)
@@ -385,6 +387,8 @@ bool isPropExistAtPos(int pos,Trace *trace, std::string prop_name){
         }
         return false;   
     }
+
+    return false;
 }
 
 
