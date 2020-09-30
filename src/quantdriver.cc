@@ -484,7 +484,7 @@ z3::expr valuation(z3::context &c, Node *node, int pos, Trace *trace){
 
 
 
-std::vector<std::vector<z3::expr>> constructConstraints(z3::context &c, Node *astNode, Trace *trace,  float **score){
+std::vector<std::vector<z3::expr>> constructConstraints(z3::context &c, Node *astNode, Trace *trace,  z3:: expr **score){
     std::vector<std::vector<z3::expr>> nodeScoreCons;
     //float score[ast_size][trace->length];
     nodeScoreCons.emplace_back();
