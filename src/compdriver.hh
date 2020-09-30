@@ -24,7 +24,7 @@ class CompDriver final{
         bool parse_formula(const std::string formula);
 
         static void construct_ast(Node* ast, int depth);
-        static bool check(Node*, Trace*, const int);
+        bool check(Node*, Trace*, const int = 0);
         bool compute_holds(Node*);
         bool compose();
 
