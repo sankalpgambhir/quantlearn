@@ -85,8 +85,9 @@ void comp::CompDriver::run(){
         bool f_check = true;
         for(auto t : *(this->traces)){
             if(f_check){
-                if(!check(form, &t)){
+                if(((bool)t.parity ^ check(form, &t))){ // parity xor check. are parity and check diff?
                     // formula doesn't hold on atleast one trace. 
+                    // (or holds but with negative parity)
                     // if it atleast passes an F-check, compute holds
                     if(form->label == ltl_op::Finally){ // a check on f is vacuously an f-check
                         f_check = false;
@@ -94,7 +95,7 @@ void comp::CompDriver::run(){
                     else{
                         f_check = false;
                         for(int i = 0; i < t.length; i++){
-                            f_check |= check(form, &t, i);
+                            f_check |= !((bool)t.parity ^ check(form, &t, i));
                         }
                     }
                     
@@ -249,15 +250,14 @@ bool comp::CompDriver::check(Node* f, Trace* t, const int i){
 
 bool comp::CompDriver::compute_holds(Node* f){
 
-    
-
     switch (f->label)
     {
     case ltl_op::And:
         for(int j = 0; j < f->holds.size(); j++){
             bool f_check = false;
             for(int i = 0; i < f->holds[j].size(); i++){
-                f_check |= (f->holds[j][i] = f->left->holds[j][i] & f->right->holds[j][i]);
+                f_check |= !(((bool) this->traces->at(j).parity) 
+                                ^ (f->holds[j][i] = f->left->holds[j][i] & f->right->holds[j][i]));
             }
             if(!f_check){
                 return false; // this trace violated an f-check, so we throw the formula out
@@ -267,7 +267,8 @@ bool comp::CompDriver::compute_holds(Node* f){
         for(int j = 0; j < f->holds.size(); j++){
             bool f_check = false;
             for(int i = 0; i < f->holds[j].size(); i++){
-                f_check |= (f->holds[j][i] = f->left->holds[j][i] | f->right->holds[j][i]);
+                f_check |= !(((bool) this->traces->at(j).parity) 
+                                ^ (f->holds[j][i] = f->left->holds[j][i] | f->right->holds[j][i]));
             }
             if(!f_check){
                 return false; // this trace violated an f-check, so we throw the formula out
@@ -282,7 +283,8 @@ bool comp::CompDriver::compute_holds(Node* f){
             auto last = std::find(f->left->holds[j].rbegin(), f->left->holds[j].rend(), false);
 
             int fin = std::distance(last, f->left->holds[j].rbegin());
-            f_check = (fin == 0);
+            f_check |= !(((bool) this->traces->at(j).parity) 
+                            ^ (fin == 0));
 
             if(!f_check){
                 return false; // this trace violated an f-check, so we throw the formula out
@@ -306,7 +308,8 @@ bool comp::CompDriver::compute_holds(Node* f){
             auto last = std::find(f->left->holds[j].rbegin(), f->left->holds[j].rend(), true);
 
             int fin = std::distance(last, f->left->holds[j].rend());
-            f_check = (fin == 0);
+            f_check |= !(((bool) this->traces->at(j).parity) 
+                            ^ (fin == 0));
 
             if(!f_check){
                 return false; // this trace violated an f-check, so we throw the formula out
@@ -383,7 +386,9 @@ float comp::CompDriver::compute_score(Node* f){
     std::vector<float> t_scores;
 
     for(auto t : *(this->traces)){
-        t_scores.emplace_back(compute_trace_score(f, &t));
+        if(t.parity == positive){
+            t_scores.emplace_back(compute_trace_score(f, &t));
+        }
     }
 
     // process trace scores
