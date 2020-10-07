@@ -2,9 +2,11 @@
 
 extern std::ostream& operator << (std::ostream& os, Node const* n);
 
-comp::CompDriver::CompDriver(const std::fstream* source, const int max_depth){
+comp::CompDriver::CompDriver(const std::fstream* p_source, 
+                             const std::fstream* n_source,
+                             const int max_depth){
     // parse the traces
-    if(!parse_traces(source)){
+    if(!parse_traces(p_source, n_source)){
         CompDriver::error_flag = FILE_PARSE_FAIL;
         return;
     }   
@@ -125,13 +127,16 @@ void comp::CompDriver::run(){
     }
 }
 
-bool comp::CompDriver::parse_traces(const std::fstream *source){
-    std::ostringstream ss;
-    ss << source->rdbuf(); // reading data
-    std::string str = ss.str();
+bool comp::CompDriver::parse_traces(const std::fstream *p_source, const std::fstream *n_source){
+    std::ostringstream ps, ns;
+    ps << p_source->rdbuf(); // reading data
+    ns << n_source->rdbuf(); 
+    std::string str[] = {ps.str(), ns.str()};
 
     // clean whitespace
-    str.erase(std::remove_if(str.begin(), str.end(), isspace), str.end()); 
+    for(auto s : str){
+        s.erase(std::remove_if(s.begin(), s.end(), isspace), s.end());
+    }
     
     this->traces->emplace_back();
     Trace curr_trace = this->traces->back();
@@ -143,53 +148,56 @@ bool comp::CompDriver::parse_traces(const std::fstream *source){
     // hold futures for trace computations
     std::vector<std::future<void> > async_trace_comp;
 
-    for(int i = 0; i < str.length(); i++){
-        if(str[i] == PROP_DELIMITER){
-            // check prop
-            if(curr_trace.prop_inst.find(temp_prop) == curr_trace.prop_inst.end()){
-                // add new prop to EVERY trace
-                // if it's not in this trace, it's not in any trace
-                for(auto t : *(this->traces)){
-                    t.prop_inst.insert({temp_prop, Trace::proposition(temp_prop)});
+    for(int j : {negative, positive}){
+        // compute both positive and negative traces
+        for(int i = 0; i < str[j].length(); i++){
+            if(str[j][i] == PROP_DELIMITER){
+                // check prop
+                if(curr_trace.prop_inst.find(temp_prop) == curr_trace.prop_inst.end()){
+                    // add new prop to EVERY trace
+                    // if it's not in this trace, it's not in any trace
+                    for(auto t : *(this->traces)){
+                        t.prop_inst.insert({temp_prop, Trace::proposition(temp_prop)});
+                    }
                 }
+
+                // add new instance of prop
+                curr_trace.prop_inst[temp_prop].instances.emplace_back(curr_step);
+            
+                // add prop to trace
+                temp_step += temp_prop;
+                temp_prop = __empty;
+                temp_step += " ";
+
+                continue;
+
+            }
+            if(str[j][i] == STEP_DELIMITER){
+                // tie up trace
+                // compute props
+                curr_trace.trace_string.back().emplace_back(temp_step);
+                temp_step = __empty;
+                curr_step++;
+                continue;
+            }
+            if(str[j][i] == TRACE_DELIMITER){
+                this->traces->back().parity = (parity_t) j;
+
+                this->traces->emplace_back();
+                curr_trace = this->traces->back();
+                curr_step = 0;
+
+                // add all old props to new trace
+                for(auto m : this->traces->front().prop_inst)
+                    curr_trace.prop_inst.insert({m.first, Trace::proposition(m.first)});
+                continue;
             }
 
-            // add new instance of prop
-            curr_trace.prop_inst[temp_prop].instances.emplace_back(curr_step);
-        
-            // add prop to trace
-            temp_step += temp_prop;
-            temp_prop = __empty;
-            temp_step += " ";
-
-            continue;
+            // not a delimiter, move on
+            temp_prop += str[j][i];
 
         }
-        if(str[i] == STEP_DELIMITER){
-            // tie up trace
-            // compute props
-            curr_trace.trace_string.back().emplace_back(temp_step);
-            temp_step = __empty;
-            curr_step++;
-            continue;
-        }
-        if(str[i] == TRACE_DELIMITER){
-
-            this->traces->emplace_back();
-            curr_trace = this->traces->back();
-            curr_step = 0;
-
-            // add all old props to new trace
-            for(auto m : this->traces->front().prop_inst)
-                curr_trace.prop_inst.insert({m.first, Trace::proposition(m.first)});
-            continue;
-        }
-
-        // not a delimiter, move on
-        temp_prop += str[i];
-
     }
-
     // let every trace individually compute while we go on
     // do NOT use curr_trace for async, since it'll be modified 
     // this breaks things in unimaginable ways

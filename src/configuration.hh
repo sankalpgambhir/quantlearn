@@ -31,6 +31,7 @@ namespace po = boost::program_options;
 namespace Configuration{
     extern void init_options();
     extern void throw_error(std::string);
+    extern void throw_warning(std::string);
     extern po::options_description desc;
     extern po::variables_map vm;
     extern int max_depth;

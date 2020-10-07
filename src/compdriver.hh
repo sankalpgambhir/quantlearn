@@ -6,7 +6,9 @@ namespace comp{
 
 class CompDriver final{
     public:
-        CompDriver(const std::fstream* source, const int max_depth);
+        CompDriver(const std::fstream* p_source, 
+                   const std::fstream* n_source,
+                   const int max_depth);
 
         // create a driver from a parsed trace set, for parallelization
         CompDriver(std::vector<Trace> *traces, Node* ast);
@@ -22,7 +24,8 @@ class CompDriver final{
         Result result;
 
     private:
-        bool parse_traces(const std::fstream* source);
+        bool parse_traces(const std::fstream* p_source, 
+                          const std::fstream* n_source);
 
         static void construct_ast(Node* ast, int depth);
         bool check(Node*, Trace*, const int = 0);

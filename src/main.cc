@@ -19,8 +19,11 @@ int main(int argc, char* argv[]){
     }
     
     // were all options passed?
-    if(!Configuration::vm.count("input-file") || Configuration::vm["input-file"].as<std::string>() == __empty){
-        Configuration::throw_error("No input file specified");
+    if(!Configuration::vm.count("positive-input") || Configuration::vm["positive-input"].as<std::string>() == __empty){
+        Configuration::throw_error("No positive trace input specified");
+    }
+    if(!Configuration::vm.count("negative-input") || Configuration::vm["negative-input"].as<std::string>() == __empty){
+        Configuration::throw_warning("No negative trace input specified");
     }
     if(!Configuration::vm.count("formula") || Configuration::vm["formula"].as<std::string>() == __empty){
         Configuration::throw_error("No formula pattern specified");
@@ -28,12 +31,17 @@ int main(int argc, char* argv[]){
 
     // parse input file
         // throw error if none
-    std::fstream *source;
-    source->open(Configuration::vm["input-file"].as<std::string>());
+    std::fstream *p_source, *n_source;
+    p_source->open(Configuration::vm["positive-input"].as<std::string>());
+    n_source->open(Configuration::vm["negative-input"].as<std::string>());
 
-    if(!source->is_open()){
-        Configuration::throw_error("Could not open file");
+    if(!p_source->is_open()){
+        Configuration::throw_error("Could not open positive trace input");
         return FILE_OPEN_FAIL;
+    }
+
+    if(!n_source->is_open()){
+        Configuration::throw_warning("Could not open negative trace input, assuming none");
     }
 
     std::string formula = Configuration::vm["formula"].as<std::string>();
@@ -46,12 +54,12 @@ int main(int argc, char* argv[]){
 
     // instantiate a driver, create a context
     if (Configuration::vm.count("composition")){
-        comp::CompDriver *driver = new comp::CompDriver(source, Configuration::max_depth);
+        comp::CompDriver *driver = new comp::CompDriver(p_source, n_source, Configuration::max_depth);
         error_flag = driver->error_flag;
         delete driver;
     }
     else {
-        QuantDriver *driver = new QuantDriver(source, formula);
+        QuantDriver *driver = new QuantDriver(p_source, n_source, formula);
         error_flag = driver->error_flag;
         delete driver;
     }
@@ -62,9 +70,11 @@ int main(int argc, char* argv[]){
     }
 
     // print obtained result
+        // left to driver for now, better if cleaned to be here
 
     // destroy internals and delete driver
-    source->close();
+    p_source->close();
+    n_source->close();
 
     return OK;
 }

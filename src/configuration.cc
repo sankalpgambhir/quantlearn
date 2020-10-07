@@ -12,7 +12,8 @@ namespace Configuration
             ("help,h", "produce help message")
             ("optimization,o", "run the constraint optimization algorithm, default")
             ("composition,c", "run the compositional algorithm, ignores -f")
-            ("input-file,i", po::value<std::string>()->default_value(""), "input file")
+            ("positive-input,p", po::value<std::string>()->default_value(""), "input file for positive traces")
+            ("negative-input,n", po::value<std::string>()->default_value(""), "input file for negative traces")
             ("formula,f", po::value<std::string>()->default_value(""), "formula pattern to look for")
             ("max-depth,m", po::value<int>(&max_depth)->default_value(MAX_DEPTH_DEFAULT), "maximum formula depth to search for")
         ;
@@ -20,5 +21,9 @@ namespace Configuration
 
     void throw_error(std::string error_info){
         std::cerr << "Error: " << error_info << "!\n";
+    }
+
+    void throw_warning(std::string warning_info){
+        std::cerr << "Warning: " << warning_info << "!\n";
     }
 }

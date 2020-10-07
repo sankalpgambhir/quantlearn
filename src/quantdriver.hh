@@ -13,6 +13,11 @@
 #include <algorithm>
 #include "configuration.hh"
 
+enum parity_t{
+    negative,
+    positive
+};
+
 enum ltl_op {
     Empty, // Free
     Not,
@@ -108,6 +113,7 @@ struct Trace{
     std::map<std::string, proposition> prop_inst;
     std::vector<std::vector<std::string> > trace_string; // original trace
     int length;
+    parity_t parity;
 
     void construct_bit_matrices(z3::context& c, const int ast_size);
     void construct_bit_matrices1(z3::context& c, const int ast_size);//Consider only one from line number 100,101
@@ -136,7 +142,9 @@ struct Result{
 
 class QuantDriver{
     public:
-        QuantDriver(const std::fstream* source, const std::string formula);
+        QuantDriver(const std::fstream* p_source, 
+                    const std::fstream* n_source, 
+                    const std::string formula);
 
         // create a driver from a parsed trace set, for parallelization
         QuantDriver(std::vector<Trace> *traces, Node* ast);
@@ -153,7 +161,7 @@ class QuantDriver{
         Result result;
 
     private:
-        bool parse_traces(const std::fstream* source);
+        bool parse_traces(const std::fstream* p_source, const std::fstream* n_source);
         bool parse_formula(const std::string formula);
 
         static void construct_ast(Node* ast, int depth);
