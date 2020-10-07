@@ -92,3 +92,5 @@ m4/lt~obsolete.m4
 Makefile
 
 ### Autotools Patch ###
+# binary
+src/quantlearn 
