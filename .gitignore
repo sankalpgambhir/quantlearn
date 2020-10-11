@@ -37,7 +37,7 @@
 *.Tpo
 *.0
 *.1
-*.log
+*log
 
 ### Autotools ###
 # http://www.gnu.org/software/automake
