@@ -11,7 +11,7 @@
 #define TRACE_DELIMITER '#' // TODO: input delimiters from user
 #define STEP_DELIMITER ';'
 #define PROP_DELIMITER ','
-#define MAX_DEPTH_DEFAULT 3
+#define MAX_DEPTH_DEFAULT 2
 #define NUM_TO_PRINT 5
 
 // config based switches
@@ -35,6 +35,7 @@ namespace Configuration{
     extern po::options_description desc;
     extern po::variables_map vm;
     extern int max_depth;
+    extern std::string pos_file, neg_file;
 }
 
 #endif

@@ -4,6 +4,7 @@
 // initialize static variables as needed
 int Trace::trace_count = 0;
 int QuantDriver::ast_size = 0;
+int Node::node_total = 0;
 
 std::map<ltl_op, char> operators = {
     {Empty , (char) 0}, // Free
@@ -105,7 +106,7 @@ bool QuantDriver::parse_traces(const std::fstream *p_source, const std::fstream 
     }
     
     this->traces->emplace_back();
-    Trace curr_trace = this->traces->back();
+    Trace &curr_trace = this->traces->back();
 
     std::string temp_prop = __empty;
     std::string temp_step = __empty;
@@ -122,7 +123,7 @@ bool QuantDriver::parse_traces(const std::fstream *p_source, const std::fstream 
                 if(curr_trace.prop_inst.find(temp_prop) == curr_trace.prop_inst.end()){
                     // add new prop to EVERY trace
                     // if it's not in this trace, it's not in any trace
-                    for(auto t : *(this->traces)){
+                    for(auto &t : *(this->traces)){
                         t.prop_inst.insert({temp_prop, Trace::proposition(temp_prop)});
                     }
                 }
@@ -168,7 +169,7 @@ bool QuantDriver::parse_traces(const std::fstream *p_source, const std::fstream 
     // do NOT use curr_trace for async, since it'll be modified 
     // this breaks things in unimaginable ways
     // trace computations moved to the end to allow all propositions to be collected.
-    for(auto t : *(this->traces))
+    for(auto &t : *(this->traces))
     async_trace_comp.emplace_back(
         std::async(&Trace::compute_optimizations, t));
 
@@ -196,7 +197,7 @@ void QuantDriver::run(){
     }   
 
     // construct variables
-    for(auto tr : *this->traces){
+    for(auto &tr : *this->traces){
         //tr.construct_bit_matrices(this->opt_context, QuantDriver::ast_size);
     }
 
@@ -349,7 +350,7 @@ void Trace::compute_prop_counts(){
 
 void Trace::compute_not_props(){
     // compute prop optimizations
-    auto mod_map = this->prop_inst;
+    std::vector<std::pair<std::string, proposition> > new_inserts;
     for(auto m : this->prop_inst){
         auto s = m.first;
         auto p = m.second;
@@ -360,6 +361,9 @@ void Trace::compute_not_props(){
 
 
         auto it = p.instances.begin();
+        if(it == p.instances.end()){
+            continue;
+        }
 
         for(int i = 0; i < this->length; i++){
             if((*it).position == i){
@@ -370,7 +374,11 @@ void Trace::compute_not_props(){
             }
             np.instances.emplace_back(i); // ~p here
         }
+        new_inserts.push_back({np.name, np});
+    }
 
+    for(auto npair : new_inserts){
+        this->prop_inst.insert(npair);
     }
 }
 

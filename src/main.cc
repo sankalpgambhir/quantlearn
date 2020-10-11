@@ -23,31 +23,34 @@ int main(int argc, char* argv[]){
         Configuration::throw_error("No positive trace input specified");
     }
     if(!Configuration::vm.count("negative-input") || Configuration::vm["negative-input"].as<std::string>() == __empty){
-        Configuration::throw_warning("No negative trace input specified");
+        Configuration::throw_error("No negative trace input specified");
     }
-    if(!Configuration::vm.count("formula") || Configuration::vm["formula"].as<std::string>() == __empty){
+    if((Configuration::vm.count("composition") == 0) &&(!Configuration::vm.count("formula") || Configuration::vm["formula"].as<std::string>() == __empty)){
         Configuration::throw_error("No formula pattern specified");
     }
 
     // parse input file
         // throw error if none
-    std::fstream *p_source, *n_source;
-    p_source->open(Configuration::vm["positive-input"].as<std::string>());
-    n_source->open(Configuration::vm["negative-input"].as<std::string>());
+    std::cout << Configuration::pos_file << std::endl;
 
-    if(!p_source->is_open()){
+    std::fstream p_source = std::fstream(Configuration::pos_file);
+    std::fstream n_source = std::fstream(Configuration::neg_file);
+
+    std::cout << Configuration::pos_file << std::endl;
+    if(!p_source.is_open()){
         Configuration::throw_error("Could not open positive trace input");
         return FILE_OPEN_FAIL;
     }
 
-    if(!n_source->is_open()){
-        Configuration::throw_warning("Could not open negative trace input, assuming none");
+    if(!n_source.is_open()){
+        Configuration::throw_error("Could not open negative trace input");
+        return FILE_OPEN_FAIL;
     }
 
     std::string formula = Configuration::vm["formula"].as<std::string>();
     
     if (Configuration::vm.count("max-depth")){
-        Configuration::throw_error("Max depth not specified, defaulting to " + std::to_string(MAX_DEPTH_DEFAULT));
+        Configuration::throw_warning("Max depth not specified, defaulting to " + std::to_string(MAX_DEPTH_DEFAULT));
     }
 
     int error_flag = 0;
@@ -59,7 +62,7 @@ int main(int argc, char* argv[]){
         delete driver;
     }
     else {
-        QuantDriver *driver = new QuantDriver(p_source, n_source, formula);
+        QuantDriver *driver = new QuantDriver(&p_source, &n_source, formula);
         error_flag = driver->error_flag;
         delete driver;
     }
@@ -72,9 +75,6 @@ int main(int argc, char* argv[]){
     // print obtained result
         // left to driver for now, better if cleaned to be here
 
-    // destroy internals and delete driver
-    p_source->close();
-    n_source->close();
 
     return OK;
 }

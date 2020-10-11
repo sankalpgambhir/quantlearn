@@ -45,7 +45,10 @@ inline const float retarder(float f){
 
 struct Node{
     Node()  : label(Empty), subformula_size(0), prop_label(__empty), 
-                left(nullptr), right(nullptr){}
+                left(nullptr), right(nullptr)
+            {
+                this->id = Node::node_total++;
+            }
 
     Node(Node& copy, ltl_op new_label = Empty) 
             : subformula_size(0), prop_label(__empty), 
@@ -56,6 +59,7 @@ struct Node{
         else{
             this->label = new_label;
         }
+        this->id = Node::node_total++;
     }
 
     ~Node(){
@@ -63,6 +67,7 @@ struct Node{
     }
 
     int id;
+    static int node_total;
     ltl_op label;
     int subformula_size;
     std::string prop_label;
@@ -89,6 +94,8 @@ struct Trace{
     Trace(){
         this->id = Trace::trace_count++;
     }
+
+    //Trace(const Trace&) = delete;
 
     int id;
     static int trace_count;
