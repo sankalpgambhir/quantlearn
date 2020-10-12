@@ -77,6 +77,99 @@ void Trace::construct_bit_matrices1(z3::context &c, Node *ast_node){
 
 
 
+
+float Trace::valuation1(Node *node,int pos){
+    ltl_op op = node->label;
+    if (op == Proposition){
+        std::string prop_name = node->prop_label;
+        if(this->isPropExistAtPos(pos,prop_name)){
+            return 1.0;
+        }
+        return 0.0;
+    }
+    else if(op == Not){
+        float lVal = this->valuation1(node->left,pos);
+        return std::max((float)0.0,lVal);
+    }
+    else if(op == Or){
+        return (this->valuation1(node->left,pos) + this->valuation1(node->right,pos))/2;
+    }
+    else if(op == And){
+        return this->valuation1(node->left,pos) * this->valuation1(node->right,pos);
+    }
+    else if(op == Globally){
+        Node *leftNode = node->left;
+        if(leftNode->label == Proposition){
+            //if Gp types of formula
+            std::string prop_name = leftNode->prop_label;
+            for(auto &itr : ((this->prop_inst)[prop_name]).instances){
+            //for(auto &itr : ((((this->prop_inst).find(prop_name))->second).instances)){ //remove loop if possible
+                if (itr.position == pos){
+                    if(itr.num_after == (this->length - pos-1)){
+                        return 1.0;
+                    }
+                    else{
+                        return 0.0;
+                    }
+                }
+            }
+            return 0.0;
+        }
+        else{
+            float res=0.0;
+            for(int i=pos;i<this->length;i++){
+                float child_val = valuation1(node->left,i);
+                if(child_val > 0.0){
+                    res=res+retarder(i-pos)*child_val;
+                }
+                else{
+                    return 0.0;
+                }
+                
+            }
+            return res;
+        }
+
+    }
+    else if (op == Finally){
+        Node *leftNode = node->left;
+        if(leftNode->label == Proposition){
+            //Fp types of formula
+            std::string prop_name = leftNode->prop_label;
+            for(auto &itr : ((this->prop_inst)[prop_name]).instances){
+            //for(auto &itr : (((this->prop_inst.find(prop_name))->second).instances)){ //remove loop if possible
+                if (itr.position == pos){
+                    if(itr.pos_next > 0){ //Assume default value of pos_next is negative
+                        return 1.0;
+                    }
+                    else{
+                        return 0.0;
+                    }
+                }
+            }
+            return 0.0;
+        }
+        else{
+            for(int i=0;i<this->length;i++){
+                float child_val = valuation1(node->left,i);
+                if(child_val > 0.0){
+                    return retarder(i-pos)*child_val;
+                }
+            }
+            return 0.0;
+        }                
+    }
+    else if(op == Until){ // Not able to find the Until operator
+
+    }
+
+    return 0.0;
+}
+
+
+
+
+/*
 z3::expr Trace::valuation(z3::context &c, Node *node, int pos){
     ltl_op op = node->label;
     if (op == Proposition){
@@ -114,7 +207,16 @@ z3::expr Trace::valuation(z3::context &c, Node *node, int pos){
             return c.real_val("0.0");
         }
         else{
-            //If G(S2) types then add constraints
+            z3::expr res = c.real_val("0.0");
+            std::vector <z3::expr> additional_expr;
+            for(int i=pos;i<this->length;i++){
+                float retd = retarder(i-pos);
+                z3::expr retd_temp = c.real_const("t");
+                additional_expr.push_back(retd_temp == retd);
+                res = res + retd_temp*valuation(c,node->left,i);
+            }
+            z3::expr and_vec = std::accumulate(additional_expr.begin(), additional_expr.end(), (true_expr(c)), do_and);
+            return res && and_vec;
         }
 
     }
@@ -145,7 +247,7 @@ z3::expr Trace::valuation(z3::context &c, Node *node, int pos){
 
     return c.real_val("1.0");//Will change
 }
-
+*/
 
 
 
@@ -159,8 +261,10 @@ void Trace::score_constraints(z3::context &c, Node *astNode){
                 std::vector<z3::expr> x_vec = this->x[astNode->id];
                 z3:: expr ant = x_vec[k];
                 //z3:: expr ant = trace->x[astNode->id][k];
-                
-                z3:: expr con = (this->score[astNode->id][j]==this->valuation(c,astNode,j));//assign astNode->label before call
+                Node * mod_ast = new Node((ltl_op)k,astNode->left,astNode->right);
+                //z3::expr t1 = c.real_const("t1");
+                //z3::expr t2 = (t1 == valuation1(mod_ast,j));
+                z3:: expr con = (this->score[astNode->id][j]==valuation1(mod_ast,j));//assign astNode->label before call
                 z3:: expr cons = z3::implies(ant,con);
                 this->score_constr.push_back(cons);
             }
@@ -169,7 +273,10 @@ void Trace::score_constraints(z3::context &c, Node *astNode){
                 std::vector<z3::expr> x_vec = this->xp[astNode->id];
                 z3:: expr ant = x_vec[k];
                 //z3:: expr ant = trace->xp[astNode->id][k];
-                z3:: expr con = (this->score[astNode->id][j]==this->valuation(c,astNode,j));
+                Node * mod_ast = new Node((ltl_op)k,astNode->left,astNode->right);
+                //z3::expr t1 = c.real_const("t1");
+                //z3::expr t2 = (t1 == valuation1(astNode,j));
+                z3:: expr con = (this->score[astNode->id][j]==valuation1(astNode,j));
                 z3:: expr cons = z3::implies(ant,con);
                 this->score_constr.push_back(cons);
             }

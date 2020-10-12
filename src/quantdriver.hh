@@ -61,6 +61,9 @@ struct Node{
         }
         this->id = Node::node_total++;
     }
+    Node(ltl_op lab, Node * left_node, Node * right_node)
+            : label(lab), left(left_node), right(right_node){}
+
 
     ~Node(){
         this->destroy_children();
@@ -130,6 +133,7 @@ struct Trace{
 
     bool isPropExistAtPos(int pos, std::string prop_name);
     z3::expr valuation(z3::context &c, Node *node, int pos);
+    float valuation1(Node *node,int pos);
     void score_constraints(z3::context &c, Node *astNode);
     z3::expr node_constraints(z3::context& c, Node * ast_node);
     void merged_x_xp(Node *ast_node);
