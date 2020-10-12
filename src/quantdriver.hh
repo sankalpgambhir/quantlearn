@@ -133,7 +133,10 @@ struct Trace{
 
     bool isPropExistAtPos(int pos, std::string prop_name);
     z3::expr valuation(z3::context &c, Node *node, int pos);
-    float valuation1(Node *node,int pos);
+    z3::expr valuation_until(z3::context &c, Node *node, int pos, int offset);
+    z3::expr valuation_G(z3::context &c, Node *node, int pos);
+    z3::expr valuation_F(z3::context &c, Node *node, int pos);
+    //float valuation1(Node *node,int pos);
     void score_constraints(z3::context &c, Node *astNode);
     z3::expr node_constraints(z3::context& c, Node * ast_node);
     void merged_x_xp(Node *ast_node);
