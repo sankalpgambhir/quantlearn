@@ -229,20 +229,22 @@ bool comp::CompDriver::parse_traces(const std::fstream &p_source, const std::fst
 
         }
     }
+
+    
     // let every trace individually compute while we go on
     // do NOT use curr_trace for async, since it'll be modified 
     // this breaks things in unimaginable ways
     // trace computations moved to the end to allow all propositions to be collected.
     for(auto &t : this->traces){
         async_trace_comp.emplace_back(
-                std::async(&Trace::compute_optimizations, t));
+                std::async(std::launch::async, &Trace::compute_optimizations, &t));
     }
     
     // make sure all trace computations finished
     for(auto &comp : async_trace_comp){
         comp.get();
     }
-
+    
     return true;
 }
 
@@ -327,6 +329,7 @@ bool comp::CompDriver::compute_holds(Node* f){
                 f->holds[j][i] = true;
             }
         }
+        break;
 
 
     case ltl_op::Finally:
@@ -350,9 +353,13 @@ bool comp::CompDriver::compute_holds(Node* f){
                 f->holds[j][i] = true;
             }
         }
+        break;
 
     default: // not respecting one of GF, NNF, and composition
         Configuration::throw_error("Invalid formula type check");
+        IFDEBUG(
+            std::cerr << "Formula label: " << f->label << "\tFormula:" << f;
+        )
         break;
     }
 
