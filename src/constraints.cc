@@ -1,5 +1,6 @@
 #include "quantdriver.hh"
 #include <numeric>
+#include <iterator>
 
 
 z3::expr do_and(z3::expr e1,z3::expr e2){
@@ -11,7 +12,7 @@ z3::expr do_or(z3::expr e1,z3::expr e2){
 }
 
 z3::expr true_expr(z3::context &c){
-    std::string temp = "x";
+    std::string temp = "trueStr";
     z3::expr x = c.real_const(temp.c_str());
     z3::expr true_expr = x==x;
     return true_expr;
@@ -177,14 +178,16 @@ void Trace::score_constraints(z3::context &c, Node *astNode){
                 z3:: expr cons = z3::implies(ant,con);
                 this->score_constr.push_back(cons);
             }
-
-            for(int k=0;k<this->prop_inst.size();k++){
+            int k=0;
+            for(auto itr = this->prop_inst.begin();itr != this->prop_inst.end();++itr){
                 std::vector<z3::expr> x_vec = this->xp[astNode->id];
                 z3:: expr ant = x_vec[k];
-                Node * mod_ast = new Node((ltl_op)k,astNode->left,astNode->right);
+                Node * mod_ast = new Node(ltl_op::Proposition,astNode->left,astNode->right);
+                mod_ast->prop_label = itr->first;
                 z3:: expr con = (this->score[astNode->id][j]==valuation(c,astNode,j));
                 z3:: expr cons = z3::implies(ant,con);
                 this->score_constr.push_back(cons);
+                k++;
             }
         }
         this->score_constraints(c,astNode->left);
