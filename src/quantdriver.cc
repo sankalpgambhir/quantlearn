@@ -350,6 +350,7 @@ void Trace::compute_prop_counts(){
 
 void Trace::compute_not_props(){
     // compute prop optimizations
+    std::cerr << "\nProp size " << this->prop_inst.size();
     std::vector<std::pair<std::string, proposition> > new_inserts;
     for(auto m : this->prop_inst){
         auto s = m.first;
@@ -366,18 +367,18 @@ void Trace::compute_not_props(){
         }
 
         for(int i = 0; i < this->length; i++){
-            if((*it).position == i){
-                if(it != p.instances.end()){
-                    it++;
-                } // else we have reached the end of p, keep adding ~p
+            if(((*it).position == i) && (it != p.instances.end())){
+                it++; // else we have reached the end of p, keep adding ~p
                 continue; // ~p doesn't hold here
             }
             np.instances.emplace_back(i); // ~p here
         }
+        std::cerr << "\nBAKA " << np.name << np.instances.size();
         new_inserts.push_back({np.name, np});
+        std::cerr << "\nshoulda been inserted " << np.name << " " << new_inserts.size();
     }
 
-    for(auto npair : new_inserts){
+    for(auto &npair : new_inserts){
         this->prop_inst.insert(npair);
     }
 }

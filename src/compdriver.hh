@@ -17,8 +17,7 @@ class CompDriver final{
 
         ~CompDriver(){}
 
-        void run();
-        void run_parallel();
+        void run(bool to_compose = true);
 
         int error_flag;
         Result result;

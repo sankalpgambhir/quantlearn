@@ -23,7 +23,7 @@ comp::CompDriver::CompDriver(const std::fstream& p_source,
 
         for(auto &t : this->traces){
             form_p->holds.emplace_back(t.length, false);
-            auto holds_pt = form_p->holds.back();
+            auto &holds_pt = form_p->holds.back();
             for(auto inst : t.prop_inst[form_p->prop_label].instances){
                 holds_pt[inst.position] = true;
             }
@@ -47,8 +47,20 @@ comp::CompDriver::CompDriver(const std::fstream& p_source,
 
     // run while depth not reached
     for(int i = 1; i < max_depth; i++){
-        this->run();
+        IFDEBUG(
+            std::cerr << "Formulae before run:";
+            for(auto f : form_set){
+                std::cerr << f << '\n';
+            }
+        )
+        this->run((i != (max_depth-1)));
         // print all the formulas at each step?
+        IFDEBUG(
+            std::cerr << "\nFormulae after run:" << form_set.size() << '\n';
+            for(auto f : form_set){
+                std::cerr << f << '\n';
+            }
+        )
     }
 
     /*
@@ -79,7 +91,7 @@ comp::CompDriver::CompDriver(const std::fstream& p_source,
 
 }
 
-void comp::CompDriver::run(){
+void comp::CompDriver::run(bool to_compose){
 
     std::vector<bool> check_holds(form_set.size(), false);
     int form_count = 0; // count is cheaper than find
@@ -127,8 +139,10 @@ void comp::CompDriver::run(){
     }
 
     // compose the current operators
-    if(!this->compose()){
-        Configuration::throw_error("No formulas of higher depth available");
+    if(to_compose){
+        if(!this->compose()){
+            Configuration::throw_error("No formulas of higher depth available");
+        }
     }
 }
 
@@ -446,6 +460,7 @@ float comp::CompDriver::compute_trace_score(Node* f, Trace* t, const int pos){
             res = 0;
 
             for(int i = pos; i < t->length; i++){
+                assert(compute_trace_score(f->left, t, i) > 0.0);
                 res += retarder(i - pos) * compute_trace_score(f->left, t, i);
             }
 

@@ -26,6 +26,13 @@
 #define FILE_PARSE_FAIL 2
 #define FORM_PARSE_FAIL 3
 
+// debugging
+#ifndef NDEBUG
+    #define IFDEBUG(x) x
+#else
+    #define IFDEBUG(x) (void*) 0
+#endif
+
 namespace po = boost::program_options;
 
 namespace Configuration{
