@@ -173,12 +173,12 @@ struct Result{
 
 class QuantDriver{
     public:
-        QuantDriver(const std::fstream* p_source, 
-                    const std::fstream* n_source, 
+        QuantDriver(const std::fstream &p_source, 
+                    const std::fstream &n_source, 
                     const std::string formula);
 
         // create a driver from a parsed trace set, for parallelization
-        QuantDriver(std::vector<Trace> *traces, Node* ast);
+        QuantDriver(std::vector<Trace> &traces, Node* ast);
         QuantDriver(const QuantDriver&) = delete;
         QuantDriver& operator=(const QuantDriver&) = delete;
 
@@ -192,13 +192,13 @@ class QuantDriver{
         Result result;
 
     private:
-        bool parse_traces(const std::fstream* p_source, const std::fstream* n_source);
+        bool parse_traces(const std::fstream &p_source, const std::fstream &n_source);
         bool parse_formula(const std::string formula);
 
         static void construct_ast(Node* ast, int depth);
 
         Node *ast; // syntax tree
-        std::vector<Trace> *traces;
+        std::vector<Trace> traces;
 
         z3::context opt_context; // optimization context
 

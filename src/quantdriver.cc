@@ -55,8 +55,8 @@ std::ostream& operator << (std::ostream& os, Node const* n){
     return os;
 }
 
-QuantDriver::QuantDriver(const std::fstream* p_source, 
-                         const std::fstream* n_source, 
+QuantDriver::QuantDriver(const std::fstream &p_source, 
+                         const std::fstream &n_source, 
                          const std::string formula)
         : max_depth(Configuration::max_depth){
     // parse traces
@@ -75,7 +75,7 @@ QuantDriver::QuantDriver(const std::fstream* p_source,
     QuantDriver::error_flag = OK;
 }
 
-QuantDriver::QuantDriver(std::vector<Trace> *traces, Node* ast)
+QuantDriver::QuantDriver(std::vector<Trace> &traces, Node* ast)
         : max_depth(Configuration::max_depth){
     
     this->traces = traces;
@@ -94,36 +94,42 @@ QuantDriver::~QuantDriver(){
     // delete traces
 }
 
-bool QuantDriver::parse_traces(const std::fstream *p_source, const std::fstream *n_source){
+bool QuantDriver::parse_traces(const std::fstream &p_source, const std::fstream &n_source){
     std::ostringstream ps, ns;
-    ps << p_source->rdbuf(); // reading data
-    ns << n_source->rdbuf(); 
-    std::string str[] = {ps.str(), ns.str()};
+    ps << p_source.rdbuf(); // reading data
+    ns << n_source.rdbuf(); 
+    std::string str[] = {ns.str(), ps.str()};
 
     // clean whitespace
-    for(auto s : str){
+    for(auto &s : str){
         s.erase(std::remove_if(s.begin(), s.end(), isspace), s.end());
     }
-    
-    this->traces->emplace_back();
-    Trace &curr_trace = this->traces->back();
-
-    std::string temp_prop = __empty;
-    std::string temp_step = __empty;
-    int curr_step = 0;
 
     // hold futures for trace computations
     std::vector<std::future<void> > async_trace_comp;
 
-    for(int j : {negative, positive}){
+    for(auto j : {negative, positive}){
         // compute both positive and negative traces
+        this->traces.emplace_back();
+        Trace &curr_trace = this->traces.back();
+        curr_trace.trace_string.emplace_back();
+
+        for(auto m : this->traces.front().prop_inst)
+                    curr_trace.prop_inst.insert({m.first, Trace::proposition(m.first)});
+
+        std::string temp_prop = __empty;
+        std::string temp_step = __empty;
+        int curr_step = 0;
+
         for(int i = 0; i < str[j].length(); i++){
-            if(str[j][i] == PROP_DELIMITER){
+            if(str[j][i] == PROP_DELIMITER 
+                    || str[j][i] == STEP_DELIMITER 
+                    || str[j][i] == TRACE_DELIMITER){
                 // check prop
-                if(curr_trace.prop_inst.find(temp_prop) == curr_trace.prop_inst.end()){
+                if((curr_trace.prop_inst.find(temp_prop) == curr_trace.prop_inst.end()) && temp_prop != __empty){
                     // add new prop to EVERY trace
                     // if it's not in this trace, it's not in any trace
-                    for(auto &t : *(this->traces)){
+                    for(auto &t : this->traces){
                         t.prop_inst.insert({temp_prop, Trace::proposition(temp_prop)});
                     }
                 }
@@ -134,28 +140,30 @@ bool QuantDriver::parse_traces(const std::fstream *p_source, const std::fstream 
                 // add prop to trace
                 temp_step += temp_prop;
                 temp_prop = __empty;
-                temp_step += " ";
+                temp_step += str[j][i];
 
-                continue;
+                if(str[j][i] == PROP_DELIMITER) continue;
 
             }
-            if(str[j][i] == STEP_DELIMITER){
-                // tie up trace
-                // compute props
+            if(str[j][i] == STEP_DELIMITER 
+                    || str[j][i] == TRACE_DELIMITER){
                 curr_trace.trace_string.back().emplace_back(temp_step);
                 temp_step = __empty;
                 curr_step++;
-                continue;
+                curr_trace.length++;
+                if(str[j][i] == STEP_DELIMITER) continue;
             }
             if(str[j][i] == TRACE_DELIMITER){
-                this->traces->back().parity = (parity_t) j;
+                curr_trace.parity = j;
 
-                this->traces->emplace_back();
-                curr_trace = this->traces->back();
-                curr_step = 0;
+                if(i != (str[j].length() - 1)){
+                    this->traces.emplace_back();
+                    curr_trace = this->traces.back();
+                    curr_step = 0;
+                }
 
                 // add all old props to new trace
-                for(auto m : this->traces->front().prop_inst)
+                for(auto m : this->traces.front().prop_inst)
                     curr_trace.prop_inst.insert({m.first, Trace::proposition(m.first)});
                 continue;
             }
@@ -165,19 +173,22 @@ bool QuantDriver::parse_traces(const std::fstream *p_source, const std::fstream 
 
         }
     }
+
+    
     // let every trace individually compute while we go on
     // do NOT use curr_trace for async, since it'll be modified 
     // this breaks things in unimaginable ways
     // trace computations moved to the end to allow all propositions to be collected.
-    for(auto &t : *(this->traces))
-    async_trace_comp.emplace_back(
-        std::async(&Trace::compute_optimizations, t));
-
+    for(auto &t : this->traces){
+        async_trace_comp.emplace_back(
+                std::async(std::launch::async, &Trace::compute_optimizations, &t));
+    }
+    
     // make sure all trace computations finished
     for(auto &comp : async_trace_comp){
         comp.get();
     }
-
+    
     return true;
 }
 
@@ -197,7 +208,7 @@ void QuantDriver::run(){
     }   
 
     // construct variables
-    for(auto &tr : *this->traces){
+    for(auto &tr : this->traces){
         //tr.construct_bit_matrices(this->opt_context, QuantDriver::ast_size);
     }
 
