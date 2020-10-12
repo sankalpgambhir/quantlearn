@@ -86,7 +86,11 @@ comp::CompDriver::CompDriver(const std::fstream& p_source,
     std::cout << std::setprecision(3); // limit score printing
 
     for(int i = 0; (i < NUM_TO_PRINT) && (i < this->scores.size()); i++){
-        std::cout << '\n' << i+1 << ". " << this->scores[i].first << '\t' << this->scores[i].second;
+        std::cout << '\n' << i+1 << ". " 
+                    << *std::find_if(form_set.begin(), 
+                                     form_set.end(), 
+                                     [&](Node* f){return f->id == this->scores[i].first;}) 
+                    << '\t' << this->scores[i].second;
     }
 
 }
@@ -174,7 +178,6 @@ bool comp::CompDriver::parse_traces(const std::fstream &p_source, const std::fst
         int curr_step = 0;
 
         for(int i = 0; i < str[j].length(); i++){
-            std::cerr << str[j][i];
             if(str[j][i] == PROP_DELIMITER 
                     || str[j][i] == STEP_DELIMITER 
                     || str[j][i] == TRACE_DELIMITER){
@@ -247,12 +250,12 @@ bool comp::CompDriver::check(Node* f, Trace* t, const int i){
 
     assert(f->left);
 
-    auto t_iter = std::find(this->traces.begin(), this->traces.end(), *t);
+    auto t_iter = std::find_if(this->traces.begin(), this->traces.end(), [t](Trace &inp){return t->id == inp.id;});
     assert(t_iter != this->traces.end());
 
     int t_index = std::distance(this->traces.begin(), t_iter);
 
-    auto *left_holds = &(f->left->holds[t_index]);
+    auto &left_holds = (f->left->holds[t_index]);
 
     switch (f->label)
     {
@@ -261,11 +264,11 @@ bool comp::CompDriver::check(Node* f, Trace* t, const int i){
     case ltl_op::Or:
         return check(f->left, t, i) || check(f->right, t, i);
     case ltl_op::Globally:
-        // is left child true everywhere? false not found
-        return !(std::find(left_holds->begin() + i, left_holds->end(), false) ==  left_holds->end());
+        // is left child true everywhere? not (false not found)
+        return (std::find(left_holds.begin() + i, left_holds.end(), false) ==  left_holds.end());
     case ltl_op::Finally:
         // is left child true anywhere? true found - written --> not (true not found)
-        return !(std::find(left_holds->begin() + i,  left_holds->end(), true) ==  left_holds->end());
+        return !(std::find(left_holds.begin() + i,  left_holds.end(), true) ==  left_holds.end());
 
     default: // not respecting one of GF, NNF, and composition
         Configuration::throw_error("Invalid formula type check");
@@ -416,17 +419,15 @@ float comp::CompDriver::compute_score(Node* f){
         if(t.parity == positive){
             t_scores.emplace_back(compute_trace_score(f, &t));
             assert(t_scores.back() > 0.0);
-            std::cerr << "\nbleep bloop " << t_scores.back();
-        }
-        else{
-            std::cerr << "\nbleep bloeep " << t.id;
+            IFDEBUG(std::cerr << "\nGot score " << t_scores.back()
+                        << " on trace " << t.id << " and formula " << f;)
         }
     }
 
     // process trace scores
     // todo
 
-    return std::accumulate(t_scores.begin(), t_scores.end(), 0);
+    return std::accumulate(t_scores.begin(), t_scores.end(), decltype(t_scores)::value_type(0));
 }
 
 
