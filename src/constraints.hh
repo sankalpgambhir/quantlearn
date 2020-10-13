@@ -6,14 +6,16 @@ class ConstraintSystem{
     public:
 
     private:
-        z3::expr all_constraints(Node * ast_node, z3::context&);
-        void score_constraints(z3::context &c, Node *astNode);
+        z3::expr all_constraints(Node * ast_node, z3::context&,Trace *trace);
+        z3::expr score_constraints(z3::context &c, Node *astNode, Trace *trace);
+        void node_constraints(z3::context& c, Node * ast_node, Trace *trace);
+        void leaf_constraints(z3::context& c);
 
 
-        z3::expr valuation(z3::context &c, Node *node, int pos);
-        z3::expr valuation_until(z3::context &c, Node *node, int pos, int offset);
-        z3::expr valuation_G(z3::context &c, Node *node, int pos);
-        z3::expr valuation_F(z3::context &c, Node *node, int pos);
+        z3::expr valuation(z3::context &c, Node *node, int pos, Trace *trace);
+        z3::expr valuation_until(z3::context &c, Node *node, int pos, int offset, Trace *trace);
+        z3::expr valuation_G(z3::context &c, Node *node, int pos, Trace *trace);
+        z3::expr valuation_F(z3::context &c, Node *node, int pos, Trace *trace);
 
         z3::expr node_constraint;
         z3::expr leaf_constraint;
