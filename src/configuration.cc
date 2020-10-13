@@ -21,10 +21,10 @@ namespace Configuration
     }
 
     void throw_error(std::string error_info){
-        std::cerr << "Error: " << error_info << "!\n";
+        std::cerr << "\033[1;31mError: " << error_info << "!\033[0m\n";
     }
 
     void throw_warning(std::string warning_info){
-        std::cerr << "Warning: " << warning_info << "!\n";
+        std::cerr << "\033[1;33mWarning: " << warning_info << "!\033[0m\n";
     }
 }

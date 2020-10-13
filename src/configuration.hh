@@ -25,6 +25,7 @@
 #define FILE_OPEN_FAIL 1
 #define FILE_PARSE_FAIL 2
 #define FORM_PARSE_FAIL 3
+#define NO_RESULT 4
 
 // debugging
 #define VERBOSE (void*) 0
