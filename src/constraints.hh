@@ -15,4 +15,8 @@ class ConstraintSystem{
         z3::expr valuation_G(z3::context &c, Node *node, int pos);
         z3::expr valuation_F(z3::context &c, Node *node, int pos);
 
+        z3::expr node_constraint;
+        z3::expr leaf_constraint;
+        std::vector<z3::expr> score_constraint;
+
 };

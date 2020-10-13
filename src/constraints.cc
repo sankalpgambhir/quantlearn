@@ -259,15 +259,15 @@ void Trace::merged_x_xp(Node * ast_node){
     }
 }
 
-z3::expr Trace::all_constraints(Node * ast_node, z3::context &c){
+z3::expr ConstraintSystem::all_constraints(Node * ast_node, z3::context &c){
     //Assuming ast tree is already generated
-    //z3::expr node_con = this->node_constraints(c,ast_node);
+    //z3::expr node_con = this->node_constraints(c, ast_node);
     //z3::expr leaf_con = leaf_constraints(c);
     //int size = 7;//number of nodes in the ast tree
     //z3::expr score[size][this->length];
     this->score_constraints(c, ast_node);
-    z3::expr score_con = std::accumulate(this->score_constr.begin(), this->score_constr.end(), true_expr(c), do_and);
-    z3::expr final_constr = node_con && leaf_con && score_con && (score[ast_node->id][0] > c.real_val("0.0"));
+    z3::expr score_con = std::accumulate(this->score_constraint.begin(), this->score_constraint.end(), true_expr(c), do_and);
+    z3::expr final_constr = node_constraint && leaf_constraint && score_con && (score[ast_node->id][0] > c.real_val("0.0"));
 
     return final_constr;
 
