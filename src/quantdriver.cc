@@ -154,7 +154,7 @@ bool QuantDriver::parse_traces(const std::fstream &p_source, const std::fstream 
                 if(str[j][i] == STEP_DELIMITER) continue;
             }
             if(str[j][i] == TRACE_DELIMITER){
-                IFVERBOSE(std::cerr << "\nFinished parsing trace" << curr_trace->id;)
+                IFVERBOSE(std::cerr << "\nFinished parsing trace " << curr_trace->id << " of length " << curr_trace->length;)
                 curr_trace->parity = j;
 
                 if(i != (str[j].length() - 1)){
