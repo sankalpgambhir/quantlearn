@@ -66,7 +66,7 @@ struct Node{
 
 
     ~Node(){
-        this->destroy_children();
+        //this->destroy_children(); // not really needed, we don't dynamically allocate more than once ig
     }
 
     int id;

@@ -67,6 +67,8 @@ QuantDriver::QuantDriver(const std::fstream &p_source,
     
     // parse formula
     QuantDriver::ast_size = 0;
+    this->ast = new Node();
+    construct_ast(this->ast, this->max_depth);
     if(!parse_formula(formula)){
         QuantDriver::error_flag = FORM_PARSE_FAIL;
         return;
@@ -200,7 +202,7 @@ bool QuantDriver::parse_traces(const std::fstream &p_source, const std::fstream 
 bool QuantDriver::parse_formula(const std::string formula){
     // initialize parser 
     auto f (std::begin(formula)), l (std::end(formula));
-    Parser::parse_into_ast<Node, decltype(f)>(ast, f, l);
+    Parser::parse_into_ast(ast, f, l);
 
     return true;
 }
@@ -237,7 +239,7 @@ void QuantDriver::run_parallel(){
 
     for(int i = 1; i < Proposition; i++){ // swap in every operator
     // start with 1 to ignore Empty label
-        par_ast.emplace_back();
+        par_ast.emplace_back(new Node());
         par_ast.back()->label = (ltl_op) i;
         this->construct_ast(par_ast.back(), this->max_depth);
 

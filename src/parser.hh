@@ -113,8 +113,7 @@ struct printer : boost::static_visitor<void>
     }
 };
 
-std::ostream& operator<<(std::ostream& os, const expr& e)
-{ boost::apply_visitor(printer(os), e); return os; }
+extern std::ostream& operator<<(std::ostream& os, const expr& e);
 
 
 template <typename Iter, typename Skipper = qi::space_type>
@@ -170,68 +169,89 @@ template <typename Iter, typename Skipper = qi::space_type>
     qi::rule<Iter, expr(), Skipper> simple_, expr_;
 };
 
-template <typename Node, typename Iter = std::string::const_iterator>
-bool parse_into_ast(Node* ast, Iter f, Iter l){
-    parser<Iter> p;
+extern bool parse_into_ast(Node*, std::string::const_iterator, std::string::const_iterator);
 
-        try
-        {
-            expr result;
-            bool ok = qi::phrase_parse(f,l,p > ';',qi::space,result);
+extern bool copy_to_ast(Node*, expr);
 
-            if (!ok){
-                Configuration::throw_error("Could not parse formula!");
-                return false;
-            }
-            else{
-                std::cout << "result: " << result << "\n";
-                // move into ast
-                if(!copy_to_ast(ast, result)){
-                    Configuration::throw_error("Could not parse into AST!");
-                }
-            }
+struct copier : public boost::static_visitor<bool>{
 
-        } catch (const qi::expectation_failure<Iter>& e)
-        {
-            std::string errstr = "Expectation failure at " + std::string(e.first, e.last) + "\n";
-            Configuration::throw_error(errstr);
-        }
+    public:
 
-        if (f!=l) std::cerr << "unparsed: '" << std::string(f,l) << "'\n";
+    bool operator ()(const var &v){
+        a->label = ltl_op::Proposition; 
+        a->prop_label = v; 
+        return true;
+    }
+    bool operator ()(const int &i){
+        a->label = ltl_op::Subformula; 
+        a->subformula_size = i; 
+        return true;
+    }
 
-    return true;
-};
-
-template <typename Node, typename expres>
-struct copier{
-    // kinda dumb, make it nicer probably
-    static bool copy_expr(Node* a, var v){a->label = ltl_op::Proposition; a->prop_label = v; return true;}
-    static bool copy_expr(Node* a, int i){a->label = ltl_op::Subformula; a->subformula_size = i; return true;}
-
-    static bool copy_expr(Node* a, unop<op_not> u){a->label = ltl_op::Not; copy_expr(a->l, u.oper1); return true;}
-    static bool copy_expr(Node* a, unop<op_globally> u){a->label = ltl_op::Globally; copy_expr(a->l, u.oper1); return true;}
-    static bool copy_expr(Node* a, unop<op_finally> u){a->label = ltl_op::Finally; copy_expr(a->l, u.oper1); return true;}
-    static bool copy_expr(Node* a, unop<op_subform> u){a->label = ltl_op::Subformula; copy_expr(a->l, u.oper1); return true;}
+    bool operator ()(const unop<op_not> &u){
+        a->label = ltl_op::Not; 
+        a = a->left;
+        return boost::apply_visitor(*this)(u.oper1);
+    }
+    bool operator ()(const unop<op_globally> &u){
+        a->label = ltl_op::Globally; 
+        a = a->left;
+        return boost::apply_visitor(*this)(u.oper1);
+    }
+    bool operator ()(const unop<op_finally> &u){
+        a->label = ltl_op::Finally; 
+        a = a->left;
+        return boost::apply_visitor(*this)(u.oper1);
+    }
+    bool operator ()(const unop<op_subform> &u){
+        a->label = ltl_op::Subformula; 
+        a = a->left;
+        return boost::apply_visitor(*this)(u.oper1);
+    }
 
     #if GF_FRAGMENT
         //
     #else
-    static bool copy_expr(Node* a, unop<op_next> u){a->label = ltl_op::Next; copy_expr(a->l, u.oper1); return true;}
-    static bool copy_expr(Node* a, binop<op_until> b){a->label = ltl_op::Until; copy_expr(a->l, b.oper1); copy_expr(a->r, b.oper2); return true;}
+
+    bool operator ()(const unop<op_next> &u){
+        a->label = ltl_op::Next; 
+        a = a->left;
+        return boost::apply_visitor(*this)(u.oper1);
+    }
+    bool operator ()(const binop<op_until> &b){
+        a->label = ltl_op::Until; 
+        Node * temp = a;
+        a = temp->left;
+        bool l = boost::apply_visitor(*this)(b.oper1);
+        a = temp->right;
+        bool r = boost::apply_visitor(*this)(b.oper2);
+        return l && r;
+    }
+
     #endif
 
-    static bool copy_expr(Node* a, binop<op_and> b){a->label = ltl_op::And; copy_expr(a->l, b.oper1); copy_expr(a->r, b.oper2); return true;}
-    static bool copy_expr(Node* a, binop<op_or> b){a->label = ltl_op::Or; copy_expr(a->l, b.oper1); copy_expr(a->r, b.oper2); return true;}
+    bool operator ()(const binop<op_and> &b){
+        a->label = ltl_op::And; 
+        Node * temp = a;
+        a = temp->left;
+        bool l = boost::apply_visitor(*this)(b.oper1);
+        a = temp->right;
+        bool r = boost::apply_visitor(*this)(b.oper2);
+        return l && r;
+    }
+    bool operator ()(const binop<op_or> &b){
+        a->label = ltl_op::Or; 
+        Node * temp = a;
+        a = temp->left;
+        bool l = boost::apply_visitor(*this)(b.oper1);
+        a = temp->right;
+        bool r = boost::apply_visitor(*this)(b.oper2);
+        return l && r;
+    }
 
-    static bool copy_expr(Node* a, expres e){return false;}
+    Node* a;
 };
 
-template <typename Node, typename expres = expr>
-    bool copy_to_ast(Node* ast, expres res){
-
-    return copier<Node, expres>::copy_expr(ast, res);
-
-};
 
 
 }
