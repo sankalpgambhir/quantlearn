@@ -129,8 +129,8 @@ struct Trace{
     int length;
     parity_t parity;
 
-    void construct_bit_matrices(z3::context& c, const int ast_size);
-    void construct_bit_matrices1(z3::context& c, Node * ast_node);//Consider only one from line number 100,101
+    //void construct_bit_matrices(z3::context& c, const int ast_size);
+    //void construct_bit_matrices1(z3::context& c, Node * ast_node);//Consider only one from line number 100,101
     void compute_prop_counts();
     void compute_not_props();
     void compute_optimizations();
@@ -140,26 +140,14 @@ struct Trace{
     z3::expr valuation_until(z3::context &c, Node *node, int pos, int offset);
     z3::expr valuation_G(z3::context &c, Node *node, int pos);
     z3::expr valuation_F(z3::context &c, Node *node, int pos);
-    void score_constraints(z3::context &c, Node *astNode);
-    z3::expr node_constraints(z3::context& c, Node * ast_node);
-    void merged_x_xp(Node *ast_node);
-    z3::expr leaf_constraints(z3::context& c, std::vector<std::vector<z3::expr>> &vec__vec_expr);
     z3::expr all_constraints(Node * ast_node);
-    z3::expr leaf_constraints(z3::context& c);
-    //z3::expr do_and(z3::expr e1,z3::expr e2);
-    //z3::expr do_or(z3::expr e1,z3::expr e2);
+    void score_constraints(z3::context &c, Node *astNode);
 
 
 
     // calculating stuff for this trace
     // Not sure about usage of z3::expr_vector. Possible optimization?
-    //std::vector<std::vector<z3::expr> > x; // matrix of bools
-    //std::vector<std::vector<z3::expr> > xp;
-    std::map<int,std::vector<z3::expr>> x; // taking map of node_id and vector of expressions of that node
-    std::map<int,std::vector<z3::expr>> xp;
-    std::map<int,std::vector<z3::expr>> merged_xxp;
     std::map<int,std::vector<z3::expr>> score;
-    std::vector<std::vector<z3::expr>> leaf_constr;
     std::vector<z3::expr> score_constr;
 
     // constraints

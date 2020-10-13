@@ -216,9 +216,7 @@ void QuantDriver::run(){
     }   
 
     // construct variables
-    for(auto &tr : this->traces){
-        //tr.construct_bit_matrices(this->opt_context, QuantDriver::ast_size);
-    }
+    
 
     // construct constraint
 
@@ -226,6 +224,12 @@ void QuantDriver::run(){
     z3::optimize opt(this->opt_context);
     z3::params opt_params(this->opt_context);
     opt_params.set("priority", this->opt_context.str_symbol("pareto"));
+    opt.set(opt_params);
+
+    for(auto &tr : this->traces){
+        opt.add(tr.all_constraints(this->ast, opt_context));
+        opt.maximize(tr.score[ast_node->id][0]);
+    }
 
     // add constraint
     // optimize

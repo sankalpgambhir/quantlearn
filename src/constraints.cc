@@ -3,6 +3,18 @@
 #include <iterator>
 
 
+void construct_bit_matrices1(z3::context& c, Node * ast_node, Trace *trace);//Consider only one from line number 100,101
+z3::expr node_constraints(z3::context& c, Node * ast_node);
+void merged_x_xp(Node *ast_node);
+z3::expr leaf_constraints(z3::context& c);
+std::map<int,std::vector<z3::expr>> x; // taking map of node_id and vector of expressions of that node
+std::map<int,std::vector<z3::expr>> xp;
+std::map<int,std::vector<z3::expr>> merged_xxp;
+std::vector<std::vector<z3::expr>> leaf_constr;
+
+
+
+
 z3::expr do_and(z3::expr e1,z3::expr e2){
     return e1 && e2;
 }
@@ -29,29 +41,28 @@ bool Trace:: isPropExistAtPos(int pos, std::string prop_name){
     return false;
 }
 
-void Trace::construct_bit_matrices1(z3::context &c, Node *ast_node){
+void construct_bit_matrices1(z3::context &c, Node *ast_node){
     std::vector<z3::expr> x_constr;
     std::vector<z3::expr> xp_constr;
     if(ast_node != NULL){
         for(int j=0;j<Proposition;j++){
-            std::string name = "{X(" + std::to_string(this->id)
-                                     + "," + std::to_string(ast_node->id) + "," + std::to_string(j) + ")}";
+            std::string name = "{X(" + std::to_string(ast_node->id) + "," + std::to_string(j) + ")}";
             x_constr.push_back(c.bool_const(name.c_str()));
         }
+	
 
-        for(int j=0;j<this->prop_inst.size();j++){
-            std::string name = "{XP(" + std::to_string(this->id)
-                                     + "," + std::to_string(ast_node->id) + "," + std::to_string(j) + ")}"; 
+        for(int j=0;j < trace->prop_inst.size();j++){
+            std::string name = "{XP(" + std::to_string(ast_node->id) + "," + std::to_string(j) + ")}"; 
             xp_constr.push_back(c.bool_const(name.c_str()));
         }
-        this->x[ast_node->id] = x_constr;
-        this->xp[ast_node->id] = xp_constr;
+        x[ast_node->id] = x_constr;
+        xp[ast_node->id] = xp_constr;
         if(ast_node->left != NULL || ast_node->right != NULL){
-            this->construct_bit_matrices1(c,ast_node->left);
-            this->construct_bit_matrices1(c,ast_node->right);
+            construct_bit_matrices1(c,ast_node->left);
+            construct_bit_matrices1(c,ast_node->right);
         }
         else{
-            this->leaf_constr.push_back(xp_constr);
+            leaf_constr.push_back(xp_constr);
         }
     }
 }
@@ -171,7 +182,7 @@ void Trace::score_constraints(z3::context &c, Node *astNode){
             z3::expr ex_temp = c.real_const(score_str.c_str());
             this->score[astNode->id].push_back(ex_temp);
             for(int k=0;k<Proposition;k++){
-                std::vector<z3::expr> x_vec = this->x[astNode->id];
+                std::vector<z3::expr> x_vec = x[astNode->id];
                 z3:: expr ant = x_vec[k];
                 Node * mod_ast = new Node((ltl_op)k,astNode->left,astNode->right);
                 z3:: expr con = (this->score[astNode->id][j]==valuation(c,mod_ast,j));
@@ -180,7 +191,7 @@ void Trace::score_constraints(z3::context &c, Node *astNode){
             }
             int k=0;
             for(auto itr = this->prop_inst.begin();itr != this->prop_inst.end();++itr){
-                std::vector<z3::expr> x_vec = this->xp[astNode->id];
+                std::vector<z3::expr> x_vec = xp[astNode->id];
                 z3:: expr ant = x_vec[k];
                 Node * mod_ast = new Node(ltl_op::Proposition,astNode->left,astNode->right);
                 mod_ast->prop_label = itr->first;
@@ -207,12 +218,12 @@ z3::expr at_most_one(z3::context& c, std::vector<z3::expr> &vec_expr){
     return and_constr;
 }
 
-z3::expr Trace::node_constraints(z3::context& c, Node * ast_node){
+z3::expr node_constraints(z3::context& c, Node * ast_node){
 
     z3::expr node_constr = true_expr(c);
-    this->construct_bit_matrices1(c, ast_node);
-    this->merged_x_xp(ast_node);
-    for(auto itr=this->merged_xxp.begin();itr != this->merged_xxp.end();itr++){
+    //construct_bit_matrices1(c, ast_node);
+    merged_x_xp(ast_node);
+    for(auto itr=merged_xxp.begin();itr != merged_xxp.end();itr++){
         //itr->first is node id
         //itr->second is a vector of node-constraints on that node
         std::vector<z3::expr> vec_exp = itr->second;
@@ -224,10 +235,10 @@ z3::expr Trace::node_constraints(z3::context& c, Node * ast_node){
     return node_constr;
 }
 
-z3::expr Trace::leaf_constraints(z3::context& c){
+z3::expr leaf_constraints(z3::context& c){
 
     z3::expr node_constr = true_expr(c);
-    for(auto &it : this->leaf_constr){
+    for(auto &it : leaf_constr){
         z3::expr or_of_vec = std::accumulate(it.begin(), it.end(), !(true_expr(c)), do_or);
         node_constr = node_constr && or_of_vec;
     }
@@ -237,22 +248,22 @@ z3::expr Trace::leaf_constraints(z3::context& c){
 
 void Trace::merged_x_xp(Node * ast_node){
     if(ast_node != NULL){
-        std::vector<z3::expr> vec1 = this->x[ast_node->id];
-        std::vector<z3::expr> vec2 = this->xp[ast_node->id];
+        std::vector<z3::expr> vec1 = x[ast_node->id];
+        std::vector<z3::expr> vec2 = xp[ast_node->id];
         std::vector<z3::expr> vec3;
         vec3.insert(vec3.end(), vec1.begin(), vec1.end());
         vec3.insert(vec3.end(), vec2.begin(), vec2.end());
-        this->merged_xxp[ast_node->id] = vec3;
-        this->merged_x_xp(ast_node->left);
-        this->merged_x_xp(ast_node->right);
+        merged_xxp[ast_node->id] = vec3;
+        merged_x_xp(ast_node->left);
+        merged_x_xp(ast_node->right);
     }
 }
 
 z3::expr Trace::all_constraints(Node * ast_node){
     //Assuming ast tree is already generated
     z3::context c;
-    z3::expr node_con = this->node_constraints(c,ast_node);
-    z3::expr leaf_con = leaf_constraints(c);
+    //z3::expr node_con = this->node_constraints(c,ast_node);
+    //z3::expr leaf_con = leaf_constraints(c);
     //int size = 7;//number of nodes in the ast tree
     //z3::expr score[size][this->length];
     this->score_constraints(c, ast_node);
