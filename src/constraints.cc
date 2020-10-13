@@ -67,7 +67,7 @@ void construct_bit_matrices1(z3::context &c, Node *ast_node){
     }
 }
 
-z3::expr Trace::valuation(z3::context &c, Node *node, int pos){
+z3::expr ConstraintSystem::valuation(z3::context &c, Node *node, int pos){
     ltl_op op = node->label;
     if (op == Proposition){
         std::string prop_name = node->prop_label;
@@ -99,7 +99,7 @@ z3::expr Trace::valuation(z3::context &c, Node *node, int pos){
     return c.real_val("1.0");//Will change
 }
 
-z3::expr Trace::valuation_until(z3::context &c, Node *node, int pos, int offset){
+z3::expr ConstraintSystem::valuation_until(z3::context &c, Node *node, int pos, int offset){
     if(pos == this->length-1)
         return c.real_val("0.0");
     else{
@@ -113,7 +113,7 @@ z3::expr Trace::valuation_until(z3::context &c, Node *node, int pos, int offset)
     }
 }
 
-z3::expr Trace::valuation_G(z3::context &c, Node *node, int pos){
+z3::expr ConstraintSystem::valuation_G(z3::context &c, Node *node, int pos){
     Node *leftNode = node->left;
     if(leftNode->label == Proposition){
         //if Gp types of formula
@@ -144,7 +144,7 @@ z3::expr Trace::valuation_G(z3::context &c, Node *node, int pos){
     }
 }
 
-z3::expr Trace::valuation_F(z3::context &c, Node *node, int pos){
+z3::expr ConstraintSystem::valuation_F(z3::context &c, Node *node, int pos){
     Node *leftNode = node->left;
     if(leftNode->label == Proposition){
         //Fp types of formula
@@ -175,7 +175,9 @@ z3::expr Trace::valuation_F(z3::context &c, Node *node, int pos){
     }      
 }
 
-void Trace::score_constraints(z3::context &c, Node *astNode){
+z3::expr ConstraintSystem::score_constraints(z3::context &c, Node *astNode){
+    std::vector<z3::expr> score_constr;
+    z3::expr and_score_constr = true_expr(c);
     if(astNode != NULL){
         for(int j=0;j<this->length;j++){
             std::string score_str = "score_"+std::to_string(astNode->id)+","+std::to_string(j);              
@@ -187,7 +189,7 @@ void Trace::score_constraints(z3::context &c, Node *astNode){
                 Node * mod_ast = new Node((ltl_op)k,astNode->left,astNode->right);
                 z3:: expr con = (this->score[astNode->id][j]==valuation(c,mod_ast,j));
                 z3:: expr cons = z3::implies(ant,con);
-                this->score_constr.push_back(cons);
+                score_constr.push_back(cons);
             }
             int k=0;
             for(auto itr = this->prop_inst.begin();itr != this->prop_inst.end();++itr){
@@ -197,13 +199,17 @@ void Trace::score_constraints(z3::context &c, Node *astNode){
                 mod_ast->prop_label = itr->first;
                 z3:: expr con = (this->score[astNode->id][j]==valuation(c,astNode,j));
                 z3:: expr cons = z3::implies(ant,con);
-                this->score_constr.push_back(cons);
+                score_constr.push_back(cons);
                 k++;
             }
         }
-        this->score_constraints(c,astNode->left);
-        this->score_constraints(c,astNode->right);
+        z3::expr l_score_constr = this->score_constraints(c,astNode->left);
+        z3::expr r_score_constr = this->score_constraints(c,astNode->right);
+    
+        and_score_constr = std::accumulate(score_constr.begin(), score_constr.end(), true_expr(c), do_and);
+        and_score_constr = and_score_constr && l_score_constr && r_score_constr;
     }
+    return and_score_constr;
 }
 
 z3::expr at_most_one(z3::context& c, std::vector<z3::expr> &vec_expr){
@@ -218,10 +224,10 @@ z3::expr at_most_one(z3::context& c, std::vector<z3::expr> &vec_expr){
     return and_constr;
 }
 
-z3::expr node_constraints(z3::context& c, Node * ast_node){
+void node_constraints(z3::context& c, Node * ast_node){
 
     z3::expr node_constr = true_expr(c);
-    //construct_bit_matrices1(c, ast_node);
+    construct_bit_matrices1(c, ast_node);
     merged_x_xp(ast_node);
     for(auto itr=merged_xxp.begin();itr != merged_xxp.end();itr++){
         //itr->first is node id
@@ -232,7 +238,7 @@ z3::expr node_constraints(z3::context& c, Node * ast_node){
         node_constr = node_constr && or_of_vec && at_most;
     }
 
-    return node_constr;
+    this->node_constraint = node_constr;
 }
 
 z3::expr leaf_constraints(z3::context& c){
