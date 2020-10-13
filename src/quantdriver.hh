@@ -94,12 +94,15 @@ struct Node{
 
 struct Trace{
 
-    Trace(){
-        this->id = Trace::trace_count++;
+    Trace() : id(Trace::trace_count++){
+        this->length = 0;
+        this->prop_inst.clear();
+        this->parity = parity_t::positive; // by default must show in score calculation
+        this->trace_string.clear();
     }
 
-    Trace(const Trace&) = default; // copy constructor -- needed for parallel quantdriver
-    Trace(Trace&&) = default; // move constructor
+    //Trace(const Trace&) = default; // copy constructor -- needed for parallel quantdriver
+    //Trace(Trace&&) = default; // move constructor
 
     int id;
     static int trace_count;

@@ -75,6 +75,7 @@ int main(int argc, char* argv[]){
     // print obtained result
         // left to driver for now, better if cleaned to be here
 
+    std::cout << std::endl;
 
     return OK;
 }

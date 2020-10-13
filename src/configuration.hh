@@ -27,10 +27,11 @@
 #define FORM_PARSE_FAIL 3
 
 // debugging
-#ifndef NDEBUG
-    #define IFDEBUG(x) x
+#define VERBOSE (void*) 0
+#ifndef NVERBOSE
+    #define IFVERBOSE(x) x
 #else
-    #define IFDEBUG(x) (void*) 0
+    #define IFVERBOSE(x) (void*) 0
 #endif
 
 namespace po = boost::program_options;

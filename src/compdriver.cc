@@ -47,7 +47,7 @@ comp::CompDriver::CompDriver(const std::fstream& p_source,
 
     // run while depth not reached
     for(int i = 1; i < max_depth; i++){
-        IFDEBUG(
+        IFVERBOSE(
             std::cerr << "Formulae before run:";
             for(auto f : form_set){
                 std::cerr << f << '\n';
@@ -55,7 +55,7 @@ comp::CompDriver::CompDriver(const std::fstream& p_source,
         )
         this->run((i != (max_depth-1)));
         // print all the formulas at each step?
-        IFDEBUG(
+        IFVERBOSE(
             std::cerr << "\nFormulae after run:" << form_set.size() << '\n';
             for(auto f : form_set){
                 std::cerr << f << '\n';
@@ -125,22 +125,26 @@ void comp::CompDriver::run(bool to_compose){
             }
         }
         check_holds[form_count++] = f_check;
+        IFVERBOSE(std::cerr << "\nChecked formula " << form;)
     }
 
     // compute holds or throw out
     for(int i = 0; i < form_set.size(); i++){
         if(!check_holds[i]){
+            IFVERBOSE(std::cerr << "\nDisqualified " << *(form_set.begin()+i);)
             form_set.erase(form_set.begin() + i);
             i--;
             continue;
         }
 
         if(!compute_holds(form_set[i])){ // computing holds found a violating trace
+            IFVERBOSE(std::cerr << "\nDisqualified " << *(form_set.begin()+i);)
             form_set.erase(form_set.begin() + i);
             i--;
             continue;
         }
     }
+    IFVERBOSE(std::cerr << "\nComputed holds.";)
 
     // compose the current operators
     if(to_compose){
@@ -148,6 +152,7 @@ void comp::CompDriver::run(bool to_compose){
             Configuration::throw_error("No formulas of higher depth available");
         }
     }
+    IFVERBOSE(std::cerr << "\nComputed compositions.";)
 }
 
 bool comp::CompDriver::parse_traces(const std::fstream &p_source, const std::fstream &n_source){
@@ -210,17 +215,19 @@ bool comp::CompDriver::parse_traces(const std::fstream &p_source, const std::fst
                 if(str[j][i] == STEP_DELIMITER) continue;
             }
             if(str[j][i] == TRACE_DELIMITER){
+                IFVERBOSE(std::cerr << "\nFinished parsing trace " << curr_trace->id << " of length " << curr_trace->length;)
                 curr_trace->parity = j;
 
                 if(i != (str[j].length() - 1)){
                     this->traces.emplace_back();
-                    curr_trace = &this->traces.back();
+                    curr_trace = & this->traces.back();
                     curr_step = 0;
+                    curr_trace->trace_string.emplace_back();
+                    // add all old props to new trace
+                    for(auto m : this->traces.front().prop_inst)
+                        curr_trace->prop_inst.insert({m.first, Trace::proposition(m.first)});
                 }
 
-                // add all old props to new trace
-                for(auto m : this->traces.front().prop_inst)
-                    curr_trace->prop_inst.insert({m.first, Trace::proposition(m.first)});
                 continue;
             }
 
@@ -231,6 +238,7 @@ bool comp::CompDriver::parse_traces(const std::fstream &p_source, const std::fst
     }
 
     
+    IFVERBOSE(std::cerr << "\nPerforming trace computations.";)
     // let every trace individually compute while we go on
     // do NOT use curr_trace for async, since it'll be modified 
     // this breaks things in unimaginable ways
@@ -244,7 +252,9 @@ bool comp::CompDriver::parse_traces(const std::fstream &p_source, const std::fst
     for(auto &comp : async_trace_comp){
         comp.get();
     }
-    
+
+    IFVERBOSE(std::cerr << "\nFinished trace computations.";)
+
     return true;
 }
 
@@ -357,7 +367,7 @@ bool comp::CompDriver::compute_holds(Node* f){
 
     default: // not respecting one of GF, NNF, and composition
         Configuration::throw_error("Invalid formula type check");
-        IFDEBUG(
+        IFVERBOSE(
             std::cerr << "Formula label: " << f->label << "\tFormula:" << f;
         )
         break;
@@ -378,10 +388,12 @@ bool comp::CompDriver::compose(){
     // unary
     for(int i = 0; i < prev_size; i++){
         for(auto op : {ltl_op::Globally, ltl_op::Finally}){
-            form_set.emplace_back();
+            if(form_set[i]->label == op) continue; // don't make GG/FF
+            form_set.emplace_back(new Node());
             auto curr = form_set.back();
             curr->label = op;
             curr->left = form_set[i];
+            IFVERBOSE(std::cerr << "\nGenerated from unary " << curr;)
         }
     }
 
@@ -389,20 +401,22 @@ bool comp::CompDriver::compose(){
     for(int i = 0; i < prev_size; i++){
         for(int j = 0; j < prev_size; i++){ // compositions of current depth
             for(auto op : {ltl_op::And, ltl_op::Or}){
-                form_set.emplace_back();
+                form_set.emplace_back(new Node());
                 auto curr = form_set.back();
                 curr->label = op;
                 curr->left = form_set[i];
                 curr->right = form_set[j];
+                IFVERBOSE(std::cerr << "\nGenerated from binary " << curr;)
             }
         }
         for(auto f : used_form){ // compositions with lower depths
             for(auto op : {ltl_op::And, ltl_op::Or}){
-                form_set.emplace_back();
+                form_set.emplace_back(new Node());
                 auto curr = form_set.back();
                 curr->label = op;
                 curr->left = form_set[i];
                 curr->right = f;
+                IFVERBOSE(std::cerr << "\nGenerated from old binary" << curr;)
             }
         }
     }
@@ -426,7 +440,7 @@ float comp::CompDriver::compute_score(Node* f){
         if(t.parity == positive){
             t_scores.emplace_back(compute_trace_score(f, &t));
             assert(t_scores.back() > 0.0);
-            IFDEBUG(std::cerr << "\nGot score " << t_scores.back()
+            IFVERBOSE(std::cerr << "\nGot score " << t_scores.back()
                         << " on trace " << t.id << " and formula " << f;)
         }
     }

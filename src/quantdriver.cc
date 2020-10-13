@@ -154,17 +154,19 @@ bool QuantDriver::parse_traces(const std::fstream &p_source, const std::fstream 
                 if(str[j][i] == STEP_DELIMITER) continue;
             }
             if(str[j][i] == TRACE_DELIMITER){
+                IFVERBOSE(std::cerr << "\nFinished parsing trace" << curr_trace->id;)
                 curr_trace->parity = j;
 
                 if(i != (str[j].length() - 1)){
                     this->traces.emplace_back();
                     curr_trace = & this->traces.back();
                     curr_step = 0;
+                    curr_trace->trace_string.emplace_back();
+                    // add all old props to new trace
+                    for(auto m : this->traces.front().prop_inst)
+                        curr_trace->prop_inst.insert({m.first, Trace::proposition(m.first)});
                 }
 
-                // add all old props to new trace
-                for(auto m : this->traces.front().prop_inst)
-                    curr_trace->prop_inst.insert({m.first, Trace::proposition(m.first)});
                 continue;
             }
 
@@ -175,6 +177,7 @@ bool QuantDriver::parse_traces(const std::fstream &p_source, const std::fstream 
     }
 
     
+    IFVERBOSE(std::cerr << "\nPerforming trace computations.";)
     // let every trace individually compute while we go on
     // do NOT use curr_trace for async, since it'll be modified 
     // this breaks things in unimaginable ways
@@ -188,7 +191,9 @@ bool QuantDriver::parse_traces(const std::fstream &p_source, const std::fstream 
     for(auto &comp : async_trace_comp){
         comp.get();
     }
-    
+
+    IFVERBOSE(std::cerr << "\nFinished trace computations.";)
+
     return true;
 }
 
@@ -393,5 +398,5 @@ void Trace::compute_not_props(){
 
 void Trace::compute_optimizations(){
     this->compute_not_props();
-    this->compute_prop_counts();
+    //this->compute_prop_counts();
 }
