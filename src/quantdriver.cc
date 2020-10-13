@@ -73,6 +73,7 @@ QuantDriver::QuantDriver(const std::fstream &p_source,
         QuantDriver::error_flag = FORM_PARSE_FAIL;
         return;
     }
+    IFVERBOSE(std::cerr << "\nTree after parsing : " << this->ast;)
 
     QuantDriver::error_flag = OK;
 }
