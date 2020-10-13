@@ -13,7 +13,7 @@ namespace Parser{
             try
             {
                 expr result;
-                bool ok = qi::phrase_parse(f,l,p > ';', qi::space, result);
+                bool ok = qi::phrase_parse(f, l, p, qi::space, result);
 
                 if (!ok){
                     Configuration::throw_error("Could not parse formula!");
