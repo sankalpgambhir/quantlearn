@@ -12,151 +12,13 @@
 #include <future>
 #include <algorithm>
 #include "configuration.hh"
-
-enum parity_t{
-    negative,
-    positive
-};
-
-enum ltl_op {
-    Empty, // Free
-    Not,
-    Or,
-    And,
-    #if GF_FRAGMENT
-    //
-    #else
-        Next,
-        Until,
-    #endif
-    Globally,
-    Finally,
-    Proposition,
-    Subformula
-};
-
-extern std::map<ltl_op, char> operators;
-
-const int op_arity(ltl_op o);
+#include "constraints.hh"
+#include "trace.hh"
+#include "node.hh"
 
 inline const float retarder(float f){
     return exp(-f);
 }
-
-struct Node{
-    Node()  : label(Empty), subformula_size(0), prop_label(__empty), 
-                left(nullptr), right(nullptr)
-            {
-                this->id = Node::node_total++;
-            }
-
-    Node(Node& copy, ltl_op new_label = Empty) 
-            : subformula_size(0), prop_label(__empty), 
-                left(nullptr), right(nullptr){
-        if (new_label == Empty){
-            this->label = copy.label;
-        }
-        else{
-            this->label = new_label;
-        }
-        this->id = Node::node_total++;
-    }
-    Node(ltl_op lab, Node * left_node, Node * right_node)
-            : label(lab), left(left_node), right(right_node){}
-
-
-    ~Node(){
-        //this->destroy_children(); // not really needed, we don't dynamically allocate more than once ig
-    }
-
-    int id;
-    static int node_total;
-    ltl_op label;
-    int subformula_size;
-    std::string prop_label;
-    Node *left, *right;
-    std::vector<std::vector<bool> > holds;
-
-    void destroy_children(){
-        if(left){
-            left->destroy_children();
-            delete left;
-        }
-        if(right){
-            right->destroy_children();
-            delete right;
-        }
-    }
-
-    friend std::ostream& operator << (std::ostream& os, Node const* n);
-
-};
-
-struct Trace{
-
-    Trace() : id(Trace::trace_count++){
-        this->length = 0;
-        this->prop_inst.clear();
-        this->parity = parity_t::positive; // by default must show in score calculation
-        this->trace_string.clear();
-    }
-
-    //Trace(const Trace&) = default; // copy constructor -- needed for parallel quantdriver
-    //Trace(Trace&&) = default; // move constructor
-
-    int id;
-    static int trace_count;
-
-    struct proposition{
-        struct instance{
-            instance(int pos = 0, int num = 0, int posn = 0)
-            : position(pos), num_after(num), pos_next(posn){}
-            int position;
-            int num_after;
-            int pos_next;
-        };
-
-        proposition(std::string n) : name(n){}
-        proposition() {}
-
-        std::string name;
-        std::vector<instance> instances; // <position, props after, next prop>
-        
-    };
-
-    std::map<std::string, proposition> prop_inst;
-    std::vector<std::vector<std::string> > trace_string; // original trace
-    int length;
-    parity_t parity;
-
-    //void construct_bit_matrices(z3::context& c, const int ast_size);
-    //void construct_bit_matrices1(z3::context& c, Node * ast_node);//Consider only one from line number 100,101
-    void compute_prop_counts();
-    void compute_not_props();
-    void compute_optimizations();
-
-    bool isPropExistAtPos(int pos, std::string prop_name);
-    z3::expr valuation(z3::context &c, Node *node, int pos);
-    z3::expr valuation_until(z3::context &c, Node *node, int pos, int offset);
-    z3::expr valuation_G(z3::context &c, Node *node, int pos);
-    z3::expr valuation_F(z3::context &c, Node *node, int pos);
-    z3::expr all_constraints(Node * ast_node);
-    void score_constraints(z3::context &c, Node *astNode);
-
-
-
-    // calculating stuff for this trace
-    // Not sure about usage of z3::expr_vector. Possible optimization?
-    std::map<int,std::vector<z3::expr>> score;
-    std::vector<z3::expr> score_constr;
-
-    // constraints
-
-    // logistics
-    bool operator==(const Trace& t){
-        return this->id == t.id;
-    }
-};
 
 struct Result{
     std::string output_formula;
@@ -192,9 +54,12 @@ class QuantDriver{
         Node *ast; // syntax tree
         std::vector<Trace> traces;
 
+        ConstraintSystem consys;
         z3::context opt_context; // optimization context
 
         int max_depth;
+
+
 };
 
 #endif

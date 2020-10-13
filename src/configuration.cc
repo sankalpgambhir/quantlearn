@@ -1,6 +1,7 @@
 
 #include "configuration.hh"
 
+
 namespace Configuration
 {
     po::options_description desc("Options");
@@ -26,5 +27,52 @@ namespace Configuration
 
     void throw_warning(std::string warning_info){
         std::cerr << "\n\033[1;33mWarning: " << warning_info << "!\033[0m\n";
+    }
+}
+
+std::map<ltl_op, char> operators = {
+    {Empty , (char) 0}, // Free
+    {Not , '-'},
+    {Or , '+'},
+    {And , '*'},
+    #if GF_FRAGMENT
+    //
+    #else
+        {Next , 'X'},
+        {Until , 'U'},
+    #endif
+    {Globally , 'G'},
+    {Finally , 'F'},
+    {Subformula , 'S'},
+    {Proposition , (char) 0}
+};
+
+const int op_arity(ltl_op o){
+
+    switch (o)
+    {
+        case ltl_op::Not:
+        case ltl_op::Globally:
+        case ltl_op::Finally:
+
+        #if GF_FRAGMENT
+        #else
+        case ltl_op::Next:
+        #endif
+
+            return 1;
+
+        case ltl_op::And:
+        case ltl_op::Or:
+        
+        #if GF_FRAGMENT
+        #else
+        case ltl_op::Until:
+        #endif
+
+            return 2;
+        
+        default:
+            return 0;
     }
 }

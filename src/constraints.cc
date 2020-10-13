@@ -259,9 +259,8 @@ void Trace::merged_x_xp(Node * ast_node){
     }
 }
 
-z3::expr Trace::all_constraints(Node * ast_node){
+z3::expr Trace::all_constraints(Node * ast_node, z3::context &c){
     //Assuming ast tree is already generated
-    z3::context c;
     //z3::expr node_con = this->node_constraints(c,ast_node);
     //z3::expr leaf_con = leaf_constraints(c);
     //int size = 7;//number of nodes in the ast tree

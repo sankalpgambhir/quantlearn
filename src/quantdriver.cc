@@ -2,58 +2,7 @@
 #include "parser.hh"
 
 // initialize static variables as needed
-int Trace::trace_count = 0;
 int QuantDriver::ast_size = 0;
-int Node::node_total = 0;
-
-std::map<ltl_op, char> operators = {
-    {Empty , (char) 0}, // Free
-    {Not , '-'},
-    {Or , '+'},
-    {And , '*'},
-    #if GF_FRAGMENT
-    //
-    #else
-        {Next , 'X'},
-        {Until , 'U'},
-    #endif
-    {Globally , 'G'},
-    {Finally , 'F'},
-    {Subformula , 'S'},
-    {Proposition , (char) 0}
-};
-
-std::ostream& operator << (std::ostream& os, Node const* n){
-
-    switch (op_arity(n->label))
-    {
-    case 0:
-        // proposition or subform or empty
-        if(n->label == ltl_op::Proposition){
-            os << n->prop_label;
-        }
-        else if(n->label == ltl_op::Subformula){
-            os << operators[n->label] << '(' << n->subformula_size << ')';
-        }
-        else{
-            assert(0 && "Tried to print empty node");
-        }
-        break;
-    
-    case 1:
-        os << operators[n->label] << n->left;
-        break;
-    
-    case 2:
-        os << n->right << operators[n->label] << n->left;
-        break;
-    
-    default:
-        break;
-    }
-
-    return os;
-}
 
 QuantDriver::QuantDriver(const std::fstream &p_source, 
                          const std::fstream &n_source, 
@@ -228,7 +177,7 @@ void QuantDriver::run(){
 
     for(auto &tr : this->traces){
         opt.add(tr.all_constraints(this->ast, opt_context));
-        opt.maximize(tr.score[ast_node->id][0]);
+        opt.maximize(tr.score[this->ast->id][0]);
     }
 
     // add constraint
@@ -301,35 +250,6 @@ void QuantDriver::construct_ast(Node* ast, int depth){
     construct_ast(ast->right, depth - 1);
 }
 
-const int op_arity(ltl_op o){
-
-    switch (o)
-    {
-        case ltl_op::Not:
-        case ltl_op::Globally:
-        case ltl_op::Finally:
-
-        #if GF_FRAGMENT
-        #else
-        case ltl_op::Next:
-        #endif
-
-            return 1;
-
-        case ltl_op::And:
-        case ltl_op::Or:
-        
-        #if GF_FRAGMENT
-        #else
-        case ltl_op::Until:
-        #endif
-
-            return 2;
-        
-        default:
-            return 0;
-    }
-}
 /*
 void Trace::construct_bit_matrices(z3::context &c, const int ast_size){
         // construct operator matrix
@@ -352,58 +272,3 @@ void Trace::construct_bit_matrices(z3::context &c, const int ast_size){
             }
         }
 }*/
-
-void Trace::compute_prop_counts(){
-    // compute prop optimizations
-    for(auto m : this->prop_inst){
-        auto p = m.second;
-        int count = 0;
-        for (auto i = p.instances.begin(); i != p.instances.end(); i++){
-            count = 0;
-            auto j = i;
-            while((*(j+1)).position - (*j).position == 1){
-                count++;
-                j++;
-            }
-            (*i).num_after = count;
-            (*i).pos_next = (*(i+1)).position - (*i).position; // redundant? Can use iterators directly instead
-        }
-    }
-}
-
-void Trace::compute_not_props(){
-    // compute prop optimizations
-    std::vector<std::pair<std::string, proposition> > new_inserts;
-    for(auto const &m : this->prop_inst){
-        auto &s = m.first;
-        auto &p = m.second;
-
-        proposition np; // create a not prop
-        np.name = "~" + s;
-        np.instances.clear(); // make sure we're empty
-
-        auto it = p.instances.begin();
-
-        for(int i = 0; i < this->length; i++){
-            if(it != p.instances.end()){ // else we have reached the end of p, keep adding ~p
-                if(it->position == i){
-                    it++; 
-                    continue; // ~p doesn't hold here
-                }
-            }
-            np.instances.emplace_back(i); // ~p here
-        }
-        new_inserts.push_back({np.name, np});
-    }
-
-    assert(new_inserts.size() == this->prop_inst.size()); // propositions should double
-
-    for(auto &npair : new_inserts){
-        this->prop_inst.insert(npair);
-    }
-}
-
-void Trace::compute_optimizations(){
-    this->compute_not_props();
-    //this->compute_prop_counts();
-}

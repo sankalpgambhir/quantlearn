@@ -47,4 +47,30 @@ namespace Configuration{
     extern std::string pos_file, neg_file;
 }
 
+enum parity_t{
+    negative,
+    positive
+};
+
+enum ltl_op {
+    Empty, // Free
+    Not,
+    Or,
+    And,
+    #if GF_FRAGMENT
+    //
+    #else
+        Next,
+        Until,
+    #endif
+    Globally,
+    Finally,
+    Proposition,
+    Subformula
+};
+
+extern std::map<ltl_op, char> operators;
+
+const int op_arity(ltl_op o);
+
 #endif
