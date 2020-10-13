@@ -167,11 +167,11 @@ bool comp::CompDriver::parse_traces(const std::fstream &p_source, const std::fst
     for(auto j : {negative, positive}){
         // compute both positive and negative traces
         this->traces.emplace_back();
-        Trace &curr_trace = this->traces.back();
-        curr_trace.trace_string.emplace_back();
+        Trace *curr_trace = &this->traces.back();
+        curr_trace->trace_string.emplace_back();
 
         for(auto m : this->traces.front().prop_inst)
-                    curr_trace.prop_inst.insert({m.first, Trace::proposition(m.first)});
+                    curr_trace->prop_inst.insert({m.first, Trace::proposition(m.first)});
 
         std::string temp_prop = __empty;
         std::string temp_step = __empty;
@@ -182,7 +182,7 @@ bool comp::CompDriver::parse_traces(const std::fstream &p_source, const std::fst
                     || str[j][i] == STEP_DELIMITER 
                     || str[j][i] == TRACE_DELIMITER){
                 // check prop
-                if((curr_trace.prop_inst.find(temp_prop) == curr_trace.prop_inst.end()) && temp_prop != __empty){
+                if((curr_trace->prop_inst.find(temp_prop) == curr_trace->prop_inst.end()) && temp_prop != __empty){
                     // add new prop to EVERY trace
                     // if it's not in this trace, it's not in any trace
                     for(auto &t : this->traces){
@@ -191,7 +191,7 @@ bool comp::CompDriver::parse_traces(const std::fstream &p_source, const std::fst
                 }
 
                 // add new instance of prop
-                curr_trace.prop_inst[temp_prop].instances.emplace_back(curr_step);
+                curr_trace->prop_inst[temp_prop].instances.emplace_back(curr_step);
             
                 // add prop to trace
                 temp_step += temp_prop;
@@ -203,24 +203,24 @@ bool comp::CompDriver::parse_traces(const std::fstream &p_source, const std::fst
             }
             if(str[j][i] == STEP_DELIMITER 
                     || str[j][i] == TRACE_DELIMITER){
-                curr_trace.trace_string.back().emplace_back(temp_step);
+                curr_trace->trace_string.back().emplace_back(temp_step);
                 temp_step = __empty;
                 curr_step++;
-                curr_trace.length++;
+                curr_trace->length++;
                 if(str[j][i] == STEP_DELIMITER) continue;
             }
             if(str[j][i] == TRACE_DELIMITER){
-                curr_trace.parity = j;
+                curr_trace->parity = j;
 
                 if(i != (str[j].length() - 1)){
                     this->traces.emplace_back();
-                    curr_trace = this->traces.back();
+                    curr_trace = &this->traces.back();
                     curr_step = 0;
                 }
 
                 // add all old props to new trace
                 for(auto m : this->traces.front().prop_inst)
-                    curr_trace.prop_inst.insert({m.first, Trace::proposition(m.first)});
+                    curr_trace->prop_inst.insert({m.first, Trace::proposition(m.first)});
                 continue;
             }
 

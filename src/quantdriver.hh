@@ -98,7 +98,8 @@ struct Trace{
         this->id = Trace::trace_count++;
     }
 
-    //Trace(const Trace&) = delete;
+    Trace(const Trace&) = default; // copy constructor -- needed for parallel quantdriver
+    Trace(Trace&&) = default; // move constructor
 
     int id;
     static int trace_count;

@@ -62,7 +62,7 @@ int main(int argc, char* argv[]){
         delete driver;
     }
     else {
-        QuantDriver *driver = new QuantDriver(&p_source, &n_source, formula);
+        QuantDriver *driver = new QuantDriver(p_source, n_source, formula);
         error_flag = driver->error_flag;
         delete driver;
     }
