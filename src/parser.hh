@@ -183,7 +183,7 @@ struct copier : public boost::static_visitor<bool>{
         return true;
     }
     bool operator ()(const int &i){
-        a->label = ltl_op::Subformula; 
+        assert(a->label == ltl_op::Subformula); 
         a->subformula_size = i; 
         return true;
     }
@@ -204,8 +204,7 @@ struct copier : public boost::static_visitor<bool>{
         return boost::apply_visitor(*this)(u.oper1);
     }
     bool operator ()(const unop<op_subform> &u){
-        a->label = ltl_op::Subformula; 
-        a = a->left;
+        a->label = ltl_op::Subformula;
         return boost::apply_visitor(*this)(u.oper1);
     }
 
