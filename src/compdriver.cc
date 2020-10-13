@@ -40,6 +40,9 @@ comp::CompDriver::CompDriver(const std::fstream& p_source,
             auto curr = form_set.back();
             curr->label = op;
             curr->left = form_set[i];
+            for(auto &t : this->traces){
+                curr->holds.emplace_back(t.length, false);
+            }
         }
     }
     // done adding depth 1 formulae, remove depth zero
@@ -48,7 +51,7 @@ comp::CompDriver::CompDriver(const std::fstream& p_source,
     // run while depth not reached
     for(int i = 1; i < max_depth; i++){
         IFVERBOSE(
-            std::cerr << "Formulae before run:";
+            std::cerr << "\nFormulae before run:\n";
             for(auto f : form_set){
                 std::cerr << f << '\n';
             }
@@ -58,9 +61,14 @@ comp::CompDriver::CompDriver(const std::fstream& p_source,
         IFVERBOSE(
             std::cerr << "\nFormulae after run:" << form_set.size() << '\n';
             for(auto f : form_set){
-                std::cerr << f << '\n';
+                std::cerr << '\t' << f << '\n';
             }
         )
+    }
+
+    if(form_set.empty()){
+        Configuration::throw_error("No formulae of requisite depth hold! Try changing parameter --max-depth");
+        exit(NO_RESULT);
     }
 
     /*
@@ -261,6 +269,7 @@ bool comp::CompDriver::parse_traces(const std::fstream &p_source, const std::fst
 bool comp::CompDriver::check(Node* f, Trace* t, const int i){
 
     assert(f->left);
+    assert(i < t->length);
 
     auto t_iter = std::find_if(this->traces.begin(), this->traces.end(), [t](Trace &inp){return t->id == inp.id;});
     assert(t_iter != this->traces.end());
@@ -305,6 +314,8 @@ bool comp::CompDriver::compute_holds(Node* f){
                 return false; // this trace violated an f-check, so we throw the formula out
             }
         }
+        break;
+
     case ltl_op::Or:
         for(int j = 0; j < f->holds.size(); j++){
             bool f_check = false;
@@ -316,6 +327,8 @@ bool comp::CompDriver::compute_holds(Node* f){
                 return false; // this trace violated an f-check, so we throw the formula out
             }
         }
+        break;
+
     case ltl_op::Globally:
         // we start from the back and terminate soon as we hit a not holds condition
         // everything after it holds trivially
@@ -340,7 +353,6 @@ bool comp::CompDriver::compute_holds(Node* f){
             }
         }
         break;
-
 
     case ltl_op::Finally:
         // we start from the back and terminate soon as we hit a holds condition
@@ -393,19 +405,25 @@ bool comp::CompDriver::compose(){
             auto curr = form_set.back();
             curr->label = op;
             curr->left = form_set[i];
+            for(auto &t : this->traces){
+                curr->holds.emplace_back(t.length, false);
+            }
             IFVERBOSE(std::cerr << "\nGenerated from unary " << curr;)
         }
     }
 
     // binary
     for(int i = 0; i < prev_size; i++){
-        for(int j = 0; j < prev_size; i++){ // compositions of current depth
+        for(int j = 0; j < prev_size; j++){ // compositions of current depth
             for(auto op : {ltl_op::And, ltl_op::Or}){
                 form_set.emplace_back(new Node());
                 auto curr = form_set.back();
                 curr->label = op;
                 curr->left = form_set[i];
                 curr->right = form_set[j];
+                for(auto &t : this->traces){
+                    curr->holds.emplace_back(t.length, false);
+                }
                 IFVERBOSE(std::cerr << "\nGenerated from binary " << curr;)
             }
         }
@@ -416,6 +434,9 @@ bool comp::CompDriver::compose(){
                 curr->label = op;
                 curr->left = form_set[i];
                 curr->right = f;
+                for(auto &t : this->traces){
+                    curr->holds.emplace_back(t.length, false);
+                }
                 IFVERBOSE(std::cerr << "\nGenerated from old binary" << curr;)
             }
         }
