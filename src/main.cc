@@ -31,12 +31,9 @@ int main(int argc, char* argv[]){
 
     // parse input file
         // throw error if none
-    std::cout << Configuration::pos_file << std::endl;
-
     std::fstream p_source = std::fstream(Configuration::pos_file);
     std::fstream n_source = std::fstream(Configuration::neg_file);
 
-    std::cout << Configuration::pos_file << std::endl;
     if(!p_source.is_open()){
         Configuration::throw_error("Could not open positive trace input");
         return FILE_OPEN_FAIL;
@@ -49,8 +46,9 @@ int main(int argc, char* argv[]){
 
     std::string formula = Configuration::vm["formula"].as<std::string>();
     
-    if (Configuration::vm.count("max-depth")){
-        Configuration::throw_warning("Max depth not specified, defaulting to " + std::to_string(MAX_DEPTH_DEFAULT));
+    if (Configuration::max_depth <= 0){
+        Configuration::throw_warning("Max depth unspecified or invalid, defaulting to " + std::to_string(MAX_DEPTH_DEFAULT));
+        Configuration::max_depth = MAX_DEPTH_DEFAULT;
     }
 
     int error_flag = 0;

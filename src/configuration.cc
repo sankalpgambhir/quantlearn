@@ -16,7 +16,7 @@ namespace Configuration
             ("positive-input,p", po::value<std::string>(&pos_file)->default_value(""), "input file for positive traces")
             ("negative-input,n", po::value<std::string>(&neg_file)->default_value(""), "input file for negative traces")
             ("formula,f", po::value<std::string>()->default_value(""), "formula pattern to look for")
-            ("max-depth,m", po::value<int>(&max_depth)->default_value(MAX_DEPTH_DEFAULT), "maximum formula depth to search for")
+            ("max-depth,m", po::value<int>(&max_depth)->default_value(0), "maximum formula depth to search for")
         ;
     }
 
