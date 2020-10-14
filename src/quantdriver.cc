@@ -176,7 +176,7 @@ void QuantDriver::run(){
     opt.set(opt_params);
 
     for(auto &tr : this->traces){
-        opt.add(tr.all_constraints(this->ast, opt_context));
+        opt.add(this->consys.all_constraints(this->ast, opt_context, tr));
         opt.maximize(tr.score[this->ast->id][0]);
     }
 
