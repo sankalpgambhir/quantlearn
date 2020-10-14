@@ -296,13 +296,13 @@ void merged_x_xp(Node * ast_node){
     }
 }
 
-z3::expr ConstraintSystem::all_constraints(Node * ast_node, z3::context &c, Trace &trace){
+z3::expr ConstraintSystem::and_score_constraints(z3::context &c){
 
     z3::expr score_con = std::accumulate(this->score_constraint.begin(), this->score_constraint.end(), true_expr(c), do_and);
-    z3::expr final_constr = this->node_constraints(c, ast_node, trace) &&
-                                             this->leaf_constraints(c) && 
-                                                            score_con;
+    //z3::expr final_constr = this->node_constraints(c, ast_node, trace) &&
+    //                                         this->leaf_constraints(c) && 
+    //                                                        score_con;
 
-    return final_constr;
+    return score_con;
 
 }

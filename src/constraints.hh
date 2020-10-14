@@ -9,12 +9,15 @@ class ConstraintSystem{
     public:
 
         ConstraintSystem() = default;
-        z3::expr all_constraints(Node * ast_node, z3::context&,Trace &trace);
-
-    private:
-        z3::expr score_constraints(z3::context &c, Node *astNode, Trace &trace);
+        z3::expr and_score_constraints(z3::context& c);
         z3::expr node_constraints(z3::context& c, Node * ast_node, Trace &trace);
         z3::expr leaf_constraints(z3::context& c);
+        std::vector<z3::expr> score_constraint;
+         z3::expr score_constraints(z3::context &c, Node *astNode, Trace &trace);
+
+    private:
+       
+        
 
 
         z3::expr valuation(z3::context &c, Node *node, Trace &t, const int pos = 0);
@@ -23,7 +26,7 @@ class ConstraintSystem{
         z3::expr valuation_G(z3::context &c, Node *node, Trace &t, const int pos = 0);
         z3::expr valuation_F(z3::context &c, Node *node, Trace &t, const int pos = 0);
 
-        std::vector<z3::expr> score_constraint;
+        
 
 };
 

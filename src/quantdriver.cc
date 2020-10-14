@@ -178,13 +178,20 @@ void QuantDriver::run(){
     opt.set(opt_params);
 
     // add constraint
+    bool b = true;
     for(auto &tr : this->traces){
-        opt.add(this->consys.all_constraints(this->ast, opt_context, tr));
+        if(b){
+            opt.add(this->consys.node_constraints(opt_context, this->ast, tr));
+            opt.add(this->consys.leaf_constraints(opt_context));
+            b=false;
+        }
+        this->consys.score_constraint.push_back(this->consys.score_constraints(opt_context, this->ast, tr));
 
         if(tr.parity == parity_t::positive){
             opt.maximize(tr.score[this->ast->id][0]);
         } // TODO what about negative traces?
     }
+    opt.add(this->consys.and_score_constraints(opt_context));
 
     // add objectives
 
