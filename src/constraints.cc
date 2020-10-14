@@ -304,5 +304,11 @@ z3::expr ConstraintSystem::and_score_constraints(z3::context &c){
     //                                                        score_con;
 
     return score_con;
-
 }
+
+std::string construct_formula(z3::model m,Trace *trace){
+
+    return "";
+}
+
+

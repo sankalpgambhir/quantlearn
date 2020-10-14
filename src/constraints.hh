@@ -13,7 +13,7 @@ class ConstraintSystem{
         z3::expr node_constraints(z3::context& c, Node * ast_node, Trace &trace);
         z3::expr leaf_constraints(z3::context& c);
         std::vector<z3::expr> score_constraint;
-         z3::expr score_constraints(z3::context &c, Node *astNode, Trace &trace);
+        z3::expr score_constraints(z3::context &c, Node *astNode, Trace &trace);
 
     private:
        
