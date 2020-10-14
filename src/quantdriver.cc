@@ -24,6 +24,8 @@ QuantDriver::QuantDriver(const std::fstream &p_source,
     }
     IFVERBOSE(std::cerr << "\nTree after parsing : " << this->ast;)
 
+    this->run();
+
     QuantDriver::error_flag = OK;
 }
 
@@ -175,14 +177,28 @@ void QuantDriver::run(){
     opt_params.set("priority", this->opt_context.str_symbol("pareto"));
     opt.set(opt_params);
 
+    // add constraint
     for(auto &tr : this->traces){
         opt.add(this->consys.all_constraints(this->ast, opt_context, tr));
-        opt.maximize(tr.score[this->ast->id][0]);
+
+        if(tr.parity == parity_t::positive){
+            opt.maximize(tr.score[this->ast->id][0]);
+        } // TODO what about negative traces?
     }
 
-    // add constraint
+    // add objectives
+
     // optimize
-    // write result
+    if(opt.check() == z3::sat){
+        // parse result into ast
+
+        // write result
+        std::cout << "\nObtained optimal formula: " << this->ast;
+    }
+    else{ // unsat
+        Configuration::throw_error("No satisfying assignment found. Consider changing your parameters.");
+    }
+    
 
 }
 
