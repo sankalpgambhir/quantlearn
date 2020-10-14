@@ -1,3 +1,6 @@
+#ifndef __CONSTRAINTS_HH__
+#define __CONSTRAINTS_HH__
+
 #include <z3++.h>
 #include "node.hh"
 #include "trace.hh"
@@ -22,3 +25,5 @@ class ConstraintSystem{
         std::vector<z3::expr> score_constraint;
 
 };
+
+#endif

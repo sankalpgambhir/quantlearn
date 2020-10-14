@@ -1,3 +1,6 @@
+#ifndef __NODE_HH__
+#define __NODE_HH__
+
 #include <iostream>
 #include "configuration.hh"
 
@@ -49,3 +52,5 @@ struct Node{
     friend std::ostream& operator << (std::ostream& os, Node const* n);
 
 };
+
+#endif

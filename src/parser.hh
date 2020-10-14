@@ -1,3 +1,6 @@
+#ifndef __PARSER_HH__
+#define __PARSER_HH__
+
 #include <boost/spirit/include/qi.hpp>
 #include <boost/spirit/include/phoenix.hpp>
 #include <boost/spirit/include/phoenix_operator.hpp>
@@ -296,3 +299,5 @@ int main()
 }
 
 */
+
+#endif

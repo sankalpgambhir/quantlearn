@@ -1,3 +1,7 @@
+#ifndef __TRACE_HH__
+#define __TRACE_HH__
+
+
 #include <map>
 #include <string>
 #include <vector>
@@ -61,3 +65,5 @@ struct Trace{
         return this->id == t.id;
     }
 };
+
+#endif

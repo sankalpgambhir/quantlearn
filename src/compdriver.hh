@@ -1,3 +1,6 @@
+#ifndef __COMPDRIVER_HH__
+#define __COMPDRIVER_HH__
+
 #include "quantdriver.hh"
 #include <numeric>
 #include <iomanip>
@@ -46,3 +49,5 @@ class CompDriver final{
 };
 
 }
+
+#endif
