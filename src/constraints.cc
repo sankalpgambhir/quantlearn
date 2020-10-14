@@ -3,7 +3,7 @@
 #include <iterator>
 
 
-void construct_bit_matrices1(z3::context& c, Node * ast_node, Trace *trace);//Consider only one from line number 100,101
+void construct_bit_matrices1(z3::context& c, Node * ast_node, Trace &trace);//Consider only one from line number 100,101
 void merged_x_xp(Node *ast_node);
 std::map<int,std::vector<z3::expr>> x; // taking map of node_id and vector of expressions of that node
 std::map<int,std::vector<z3::expr>> xp;
@@ -39,7 +39,7 @@ bool Trace:: isPropExistAtPos(int pos, std::string prop_name){
     return false;
 }
 
-void construct_bit_matrices1(z3::context &c, Node *ast_node,Trace *trace){
+void construct_bit_matrices1(z3::context &c, Node *ast_node,Trace &trace){
     std::vector<z3::expr> x_constr;
     std::vector<z3::expr> xp_constr;
     if(ast_node != NULL){
@@ -49,7 +49,7 @@ void construct_bit_matrices1(z3::context &c, Node *ast_node,Trace *trace){
         }
 	
 
-        for(int j=0;j < trace->prop_inst.size();j++){
+        for(int j=0;j < trace.prop_inst.size();j++){
             std::string name = "{XP(" + std::to_string(ast_node->id) + "," + std::to_string(j) + ")}"; 
             xp_constr.push_back(c.bool_const(name.c_str()));
         }
@@ -119,15 +119,19 @@ z3::expr ConstraintSystem::valuation(z3::context &c,
     return c.real_val("0.0");//Will change
 }
 
-z3::expr ConstraintSystem::valuation_until(z3::context &c, Node *node, int pos, int offset, Trace *trace){
-    if(pos == trace->length-1)
+z3::expr ConstraintSystem::valuation_until(z3::context &c, 
+                                            Node *node, 
+                                            Trace &t,
+                                            const int pos, 
+                                            const int offset){
+    if(pos == t.length-1)
         return c.real_val("0.0");
     else{
-        z3::expr l_val = this->valuation(c,node->left,pos,trace);
-        z3::expr next_val = this->valuation_until(c,node,pos+1,offset+1,trace);
+        z3::expr l_val = this->valuation(c, node->left, t, pos);
+        z3::expr next_val = this->valuation_until(c, node, t, pos+1, offset+1);
         float rtf = retarder(offset);
         z3::expr value = z3::ite(l_val > 0, z3::ite(next_val == 0.0,c.real_val("0.0"), (rtf*l_val) + next_val) , c.real_val("0.0"));
-        z3::expr r_val = this->valuation(c,node->right,pos,trace);
+        z3::expr r_val = this->valuation(c, node->right, t, pos);
         return z3::ite(r_val > 0, r_val, value);
 
     }
@@ -165,12 +169,15 @@ z3::expr ConstraintSystem::valuation_G(z3::context &c, Node *node, Trace &t, con
     }
 }
 
-z3::expr ConstraintSystem::valuation_F(z3::context &c, Node *node, int pos, Trace *trace){
+z3::expr ConstraintSystem::valuation_F(z3::context &c, 
+                                        Node *node, 
+                                        Trace &t,
+                                        const int pos){
     Node *leftNode = node->left;
     if(leftNode->label == Proposition){
         //Fp types of formula
         std::string prop_name = leftNode->prop_label;
-        for(auto &itr : (((trace->prop_inst.find(prop_name))->second).instances)){ //remove loop if possible
+        for(auto &itr : t.prop_inst[prop_name].instances){ //remove loop if possible
             if (itr.position == pos){
                 if(itr.pos_next > 0){ //Assume default value of pos_next is negative
                     return c.real_val("1.0");
@@ -185,8 +192,8 @@ z3::expr ConstraintSystem::valuation_F(z3::context &c, Node *node, int pos, Trac
     else{
         z3::expr res = c.real_val("0.0");
         int count = 0;
-        for(int i=pos;i<trace->length;i++){
-            z3::expr l_val = this-> valuation(c,node->left,i,trace);
+        for(int i = pos; i < t.length; i++){
+            z3::expr l_val = this->valuation(c, node->left, t ,i);
             float retard = retarder(i-pos);
             z3::expr pos_expr = ite(l_val > 0, retard*l_val, c.real_val("0.0"));
             res = res + pos_expr;
@@ -196,36 +203,36 @@ z3::expr ConstraintSystem::valuation_F(z3::context &c, Node *node, int pos, Trac
     }      
 }
 
-z3::expr ConstraintSystem::score_constraints(z3::context &c, Node *astNode, Trace *trace){
+z3::expr ConstraintSystem::score_constraints(z3::context &c, Node *astNode, Trace &t){
     std::vector<z3::expr> score_constr;
     z3::expr and_score_constr = true_expr(c);
     if(astNode != NULL){
-        for(int j=0;j<trace->length;j++){
+        for(int j = 0; j < t.length; j++){
             std::string score_str = "score_"+std::to_string(astNode->id)+","+std::to_string(j);              
             z3::expr ex_temp = c.real_const(score_str.c_str());
-            trace->score[astNode->id].push_back(ex_temp);
+            t.score[astNode->id].push_back(ex_temp);
             for(int k=0;k<Proposition;k++){
                 std::vector<z3::expr> x_vec = x[astNode->id];
                 z3:: expr ant = x_vec[k];
                 Node * mod_ast = new Node((ltl_op)k,astNode->left,astNode->right);
-                z3:: expr con = (trace->score[astNode->id][j]==valuation(c,mod_ast,j,trace));
+                z3:: expr con = (t.score[astNode->id][j]==valuation(c, mod_ast, t, j));
                 z3:: expr cons = z3::implies(ant,con);
                 score_constr.push_back(cons);
             }
             int k=0;
-            for(auto itr = trace->prop_inst.begin();itr != trace->prop_inst.end();++itr){
+            for(auto &itr : t.prop_inst){
                 std::vector<z3::expr> x_vec = xp[astNode->id];
                 z3:: expr ant = x_vec[k];
                 Node * mod_ast = new Node(ltl_op::Proposition,astNode->left,astNode->right);
-                mod_ast->prop_label = itr->first;
-                z3:: expr con = (trace->score[astNode->id][j]==valuation(c,astNode,j,trace));
+                mod_ast->prop_label = itr.first;
+                z3:: expr con = (t.score[astNode->id][j]==valuation(c, astNode, t, j));
                 z3:: expr cons = z3::implies(ant,con);
                 score_constr.push_back(cons);
                 k++;
             }
         }
-        z3::expr l_score_constr = this->score_constraints(c,astNode->left,trace);
-        z3::expr r_score_constr = this->score_constraints(c,astNode->right,trace);
+        z3::expr l_score_constr = this->score_constraints(c, astNode->left, t);
+        z3::expr r_score_constr = this->score_constraints(c, astNode->right, t);
     
         and_score_constr = std::accumulate(score_constr.begin(), score_constr.end(), true_expr(c), do_and);
         and_score_constr = and_score_constr && l_score_constr && r_score_constr;
@@ -245,7 +252,7 @@ z3::expr at_most_one(z3::context& c, std::vector<z3::expr> &vec_expr){
     return and_constr;
 }
 
-void ConstraintSystem::node_constraints(z3::context& c, Node * ast_node,Trace *trace){
+void ConstraintSystem::node_constraints(z3::context& c, Node * ast_node,Trace &trace){
 
     z3::expr node_constr = true_expr(c);
     construct_bit_matrices1(c, ast_node, trace);
@@ -284,7 +291,7 @@ void merged_x_xp(Node * ast_node){
     }
 }
 
-z3::expr ConstraintSystem::all_constraints(Node * ast_node, z3::context &c, Trace *trace){
+z3::expr ConstraintSystem::all_constraints(Node * ast_node, z3::context &c, Trace &trace){
 
     z3::expr score_con = std::accumulate(this->score_constraint.begin(), this->score_constraint.end(), true_expr(c), do_and);
     z3::expr final_constr = this->node_constraint && this->leaf_constraint && score_con;
