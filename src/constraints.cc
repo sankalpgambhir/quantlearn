@@ -67,36 +67,58 @@ void construct_bit_matrices1(z3::context &c, Node *ast_node){
     }
 }
 
-z3::expr ConstraintSystem::valuation(z3::context &c, Node *node, int pos){
-    ltl_op op = node->label;
-    if (op == Proposition){
-        std::string prop_name = node->prop_label;
-        if(this->isPropExistAtPos(pos,prop_name)){
+z3::expr ConstraintSystem::valuation(z3::context &c, 
+                                        Node *node, 
+                                        Trace &t, 
+                                        const int pos){
+
+    IFVERBOSE(std::cerr << "\nValuating " << node << " on trace " << t.id;)
+
+    z3::expr *lVal;
+
+    switch (node->label)
+    {
+    case ltl_op::Proposition:
+        assert(node->prop_label != __empty);
+
+        if(t.isPropExistAtPos(pos, node->prop_label)){
             return c.real_val("1.0");
         }
         return c.real_val("0.0");
-    }
-    else if(op == Not){
-        z3::expr lVal = this->valuation(c,node->left,pos);
-        return z3::ite(lVal>0,lVal,c.real_val("0.0"));
-    }
-    else if(op == Or){
-        return (this->valuation(c,node->left,pos) + this->valuation(c,node->right,pos))/2;
-    }
-    else if(op == And){
-        return this->valuation(c,node->left,pos) * this->valuation(c,node->right,pos);
-    }
-    else if(op == Globally){
-        return this->valuation_G(c,node,pos);
-    }
-    else if (op == Finally){
-           return this->valuation_F(c,node,pos);
-    }
-    else if(op == Until){ 
-        return this->valuation_until(c,node,pos,0);
+
+    case ltl_op::Not:
+        lVal = &(1.0 - this->valuation(c, node->left, t, pos));
+        return z3::ite(*lVal > 0, *lVal, c.real_val("0.0"));
+
+    case ltl_op::Or:
+        return (this->valuation(c, node->left, t, pos) + this->valuation(c, node->right, t, pos)) / 2;
+
+    case ltl_op::And:
+        return this->valuation(c, node->left, t, pos) * this->valuation(c, node->right, t, pos);
+
+    case ltl_op::Globally:
+        return this->valuation_G(c, node, t, pos);
+
+    case ltl_op::Finally:
+        return this->valuation_F(c, node, t, pos);
+
+    case ltl_op::Until:
+        return this->valuation_until(c, node, t, pos);
+
+    case ltl_op::Next:
+        if(pos == t.length - 1){
+            assert(0 && "Decide for end");
+        }
+        return this->valuation(c, node, t, pos + 1);
+    
+    default:
+        Configuration::throw_error("Invalid formula for valuation");
+        break;
     }
 
-    return c.real_val("1.0");//Will change
+    assert(0 && "Invalid formula for valuation");
+
+    return c.real_val("0.0");//Will change
 }
 
 z3::expr ConstraintSystem::valuation_until(z3::context &c, Node *node, int pos, int offset){
@@ -113,14 +135,14 @@ z3::expr ConstraintSystem::valuation_until(z3::context &c, Node *node, int pos, 
     }
 }
 
-z3::expr ConstraintSystem::valuation_G(z3::context &c, Node *node, int pos){
+z3::expr ConstraintSystem::valuation_G(z3::context &c, Node *node, Trace &t, const int pos){
     Node *leftNode = node->left;
     if(leftNode->label == Proposition){
         //if Gp types of formula
         std::string prop_name = leftNode->prop_label;
-        for(auto &itr : ((((this->prop_inst).find(prop_name))->second).instances)){ //remove loop if possible
+        for(auto &itr : t.prop_inst[prop_name].instances){ //remove loop if possible
             if (itr.position == pos){
-                if(itr.num_after == (this->length - pos-1)){
+                if(itr.num_after == (t.length - 1 - pos)){
                     return c.real_val("1.0");
                 }
                 else{
@@ -133,12 +155,13 @@ z3::expr ConstraintSystem::valuation_G(z3::context &c, Node *node, int pos){
     else{
         z3::expr res = c.real_val("0.0");
         z3::expr mult = c.real_val("1.0");
-        for(int i=pos;i<this->length;i++){
-            z3::expr l_val = this-> valuation(c,node->left,i);
+
+        for(int i = pos; i < t.length; i++){
+            z3::expr *l_val = &this->valuation(c, node->left, t, i);
             float retard = retarder(i-pos);
-            z3::expr pos_expr = ite(l_val > 0, retard*l_val, c.real_val("0.0"));
-            mult = ite(l_val <= 0, c.real_val("0.0"), mult);
-            res = (res + pos_expr)*mult;
+            z3::expr pos_expr = ite(*l_val > 0, retard*(*l_val), c.real_val("0.0"));
+            mult = ite(*l_val <= 0, c.real_val("0.0"), mult);
+            res = (res + pos_expr) * mult;
         }
         return res;
     }

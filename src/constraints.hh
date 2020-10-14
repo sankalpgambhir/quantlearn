@@ -10,10 +10,10 @@ class ConstraintSystem{
         void score_constraints(z3::context &c, Node *astNode);
 
 
-        z3::expr valuation(z3::context &c, Node *node, int pos);
+        z3::expr valuation(z3::context &c, Node *node, Trace &t, const int pos = 0);
         z3::expr valuation_until(z3::context &c, Node *node, int pos, int offset);
-        z3::expr valuation_G(z3::context &c, Node *node, int pos);
-        z3::expr valuation_F(z3::context &c, Node *node, int pos);
+        z3::expr valuation_G(z3::context &c, Node *node, Trace &t, const int pos = 0);
+        z3::expr valuation_F(z3::context &c, Node *node, Trace &t, const int pos = 0);
 
         z3::expr node_constraint;
         z3::expr leaf_constraint;
