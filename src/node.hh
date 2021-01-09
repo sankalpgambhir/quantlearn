@@ -37,6 +37,7 @@ struct Node{
     std::string prop_label;
     Node *left, *right;
     std::vector<std::vector<bool> > holds;
+    bool isPatVar = false;
 
     void destroy_children(){
         if(left){

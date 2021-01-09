@@ -9,11 +9,16 @@ class ConstraintSystem{
     public:
 
         ConstraintSystem() = default;
+        bool is_sub_formula = false;
         z3::expr and_score_constraints(z3::context& c);
         z3::expr node_constraints(z3::context& c, Node * ast_node, Trace &trace);
         z3::expr leaf_constraints(z3::context& c);
         std::vector<z3::expr> score_constraint;
         z3::expr score_constraints(z3::context &c, Node *astNode, Trace &trace);
+        z3::expr score_constraints_pattern(z3::context &c, Node *astNode, Trace &trace);
+        z3::expr pat_to_prop_map(z3::context &c, std::vector<std::string> &pat_var, Trace &t);
+        void init_score(z3::context &c, Node *ast, Trace &t);
+        std::string construct_formula(z3::model& modl, Node* ast);
 
     private:
        
