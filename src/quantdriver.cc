@@ -178,7 +178,7 @@ void get_pattern_vars(Node *ast, std::vector<std::string> &var_vec){
 void QuantDriver::run(){
     // if top level unknown, parallelize
     if(this->ast->label == Subformula){
-        this->consys.is_sub_formula=true;
+        //this->consys.is_sub_formula=true;
         this->run_parallel();
         return;
     }
@@ -188,6 +188,34 @@ void QuantDriver::run(){
     opt_params.set("priority", this->opt_context.str_symbol("pareto"));
     opt.set(opt_params);
 
+    std::vector<std::string> patterrn_vars;
+    get_pattern_vars(this->ast, patterrn_vars);
+    for(auto &it : patterrn_vars){
+        std::cout << "\nPattern var is: " << it <<"\n";
+    }
+    bool b = true;
+    for(auto &tr : this -> traces){
+        if(tr.parity == parity_t::positive){
+        consys.init_score(this->opt_context, this->ast, tr);
+        if(b){
+            opt.add(this->consys.node_constraints(opt_context, this->ast, tr));
+            b = false;
+        }
+        
+        opt.add(consys.pat_to_prop_map(this->opt_context, patterrn_vars, tr));
+        opt.add(consys.score_constraints_pattern(this->opt_context,this->ast, tr));
+        
+        
+            z3::expr zero_expr = this->opt_context.real_val("0.0");
+            opt.add(tr.score[this->ast->id][0] > zero_expr);
+            opt.maximize(tr.score[this->ast->id][0]);
+            break;
+        } // TODO what about negative traces?
+            
+    }
+    
+
+    /*
     if (!this->consys.is_sub_formula){
         std::vector<std::string> patterrn_vars;
         get_pattern_vars(this->ast, patterrn_vars);
@@ -207,6 +235,25 @@ void QuantDriver::run(){
 
 
     }
+    else{
+        bool b = true;
+        for(auto &tr : this->traces){
+            consys.init_score(this->opt_context, this->ast, tr);
+            if(b){
+                opt.add(this->consys.node_constraints(opt_context, this->ast, tr));
+                opt.add(this->consys.leaf_constraints(opt_context));
+                b=false;
+            }
+            //this->consys.score_constraint.push_back(this->consys.score_constraints(opt_context, this->ast, tr));
+            opt.add(this->consys.score_constraints(opt_context, this->ast, tr));
+            if(tr.parity == parity_t::positive){
+                opt.maximize(tr.score[this->ast->id][0]);
+                break;
+            } // TODO what about negative traces?
+        }
+        //opt.add(this->consys.and_score_constraints(opt_context));
+    }
+    */
 
     
     // construct variables
