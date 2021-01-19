@@ -47,9 +47,7 @@ z3::expr ConstraintSystem::valuation(z3::context &c,
                                         Node *node, 
                                         Trace &t, 
                                         const int pos){
-
-    IFVERBOSE(std::cerr << "\nValuating " << node << " on trace " << t.id;)
-
+    //IFVERBOSE(std::cerr << "\nValuating " << node << " on trace " << t.id;)
     switch (node->label)
     {
     case ltl_op::Proposition:
@@ -81,7 +79,7 @@ z3::expr ConstraintSystem::valuation(z3::context &c,
 
     case ltl_op::Next:
         if(pos == t.length - 1){
-            assert(0 && "Decide for end");
+            return c.real_val("0.0");  //assert(0 && "Decide for end");
         }
         return this->valuation(c, node, t, pos + 1);
     
@@ -270,6 +268,7 @@ std::vector<z3::expr> ConstraintSystem::subformula_constr_pos(z3::context &c, No
         subformula_constr.push_back(cons);
         k++;
     }
+    return subformula_constr;
 }
 
 z3::expr ConstraintSystem::score_constraints_pattern(z3::context &c, Node *astNode, Trace &t){
@@ -285,7 +284,9 @@ z3::expr ConstraintSystem::score_constraints_pattern(z3::context &c, Node *astNo
             }
             else if(astNode->label == Subformula || astNode->label == Empty){
                 if(astNode->left->left != NULL){
+                    printf("\nCheck..s0\n");
                     std::vector<z3::expr> subformula_constr_vec = this->subformula_constr_pos(c,astNode, t,j);
+                    printf("\nCheck..s1\n");
                     score_constr.insert(score_constr.end(), subformula_constr_vec.begin(), subformula_constr_vec.end());
                     l_score_constr = this->score_constraints_pattern(c, astNode->left, t);
                     r_score_constr = this->score_constraints_pattern(c, astNode->right, t);
