@@ -314,6 +314,7 @@ void QuantDriver::run_parallel(){
 
         if(op_arity((ltl_op) i) == 1){
             par_ast[i-1]->left->label = Subformula;
+            par_ast[i-1]->left->subformula_size = this->ast->subformula_size - 1;
         }
         else if(op_arity((ltl_op) i) == 2){
             par_ast[i-1]->left->label = Subformula;
