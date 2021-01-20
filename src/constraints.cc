@@ -41,6 +41,16 @@ bool Trace:: isPropExistAtPos(int pos, std::string prop_name){
     return false;
 }
 
+bool is_leaf_node(Node *ast_node){
+    if(ast_node != NULL){
+        if(ast_node->left == NULL){
+            return true;
+        }
+        return false;
+    }
+    return false;
+}
+
 
 
 z3::expr ConstraintSystem::valuation(z3::context &c, 
@@ -278,15 +288,16 @@ z3::expr ConstraintSystem::score_constraints_pattern(z3::context &c, Node *astNo
     z3::expr r_score_constr = true_expr(c);
     if(astNode != NULL){
         for(int j = 0; j < t.length; j++){
-            if(astNode->label == Proposition){
+            if(astNode->label == Empty){
+                return and_score_constr;
+            }
+            else if(astNode->label == Proposition){
                 std::vector<z3::expr> prop_constr_vec = this->prop_constr_pos(c,astNode,t,j);
                 score_constr.insert(score_constr.end(), prop_constr_vec.begin(), prop_constr_vec.end());
             }
-            else if(astNode->label == Subformula || astNode->label == Empty){
-                if(astNode->left->left != NULL){
-                    printf("\nCheck..s0\n");
+            else if(astNode->label == Subformula){
+                if(!is_leaf_node(astNode)){
                     std::vector<z3::expr> subformula_constr_vec = this->subformula_constr_pos(c,astNode, t,j);
-                    printf("\nCheck..s1\n");
                     score_constr.insert(score_constr.end(), subformula_constr_vec.begin(), subformula_constr_vec.end());
                     l_score_constr = this->score_constraints_pattern(c, astNode->left, t);
                     r_score_constr = this->score_constraints_pattern(c, astNode->right, t);
@@ -368,8 +379,8 @@ z3::expr ConstraintSystem::score_constraints_pattern(z3::context &c, Node *astNo
 void construct_bit_matrices1(z3::context &c, Node *ast_node,Trace &trace){
     std::vector<z3::expr> x_constr;
     std::vector<z3::expr> xp_constr;
-    if(ast_node->label == Subformula || ast_node->label == Empty){ //Constrains for subformula
-        if(ast_node->left->left != NULL){
+    if(ast_node->label == Subformula){ //Constrains for subformula
+        if(!is_leaf_node(ast_node)){
             for(int j=1;j<Proposition;j++){
                 std::string name = "XO" + std::to_string(ast_node->id) + "," + std::to_string(j);
                 x_constr.push_back(c.bool_const(name.c_str()));
@@ -382,8 +393,7 @@ void construct_bit_matrices1(z3::context &c, Node *ast_node,Trace &trace){
             x[ast_node->id] = x_constr;
             xp[ast_node->id] = xp_constr;
             construct_bit_matrices1(c,ast_node->left, trace);
-            construct_bit_matrices1(c,ast_node->right, trace);
-            
+            construct_bit_matrices1(c,ast_node->right, trace);            
         }
         else{
             for(auto &itr : trace.prop_inst){
@@ -395,7 +405,7 @@ void construct_bit_matrices1(z3::context &c, Node *ast_node,Trace &trace){
             leaf_constr.push_back(xp_constr);
         }
     }
-    else{ //node is already labbelled no need to put constraints
+    else if(ast_node->label != Empty){ //node is already labbelled no need to put constraints
         int arity = op_arity(ast_node->label);
         if(arity == 1){
             construct_bit_matrices1(c,ast_node->left, trace);
@@ -469,22 +479,38 @@ void creat_score_vector_at_node(z3::context &c, Node *ast, Trace &t){
     }
 }
 
+void init_subformula_at_childs(Node *ast){
+    if(ast->left != NULL){
+        if(ast->left->label == Empty){
+            ast->left->label = Subformula;
+        }
+    }
+    if(ast->right != NULL){
+        if(ast->right->label == Empty){
+            ast->right->label = Subformula;
+        }
+    }
+}
+
 void ConstraintSystem::init_score(z3::context &c, Node *ast, Trace &t){
     if(ast != NULL){
-        if(ast->label == Subformula || ast->label == Empty){
+        if(ast->label == Subformula){
             creat_score_vector_at_node(c,ast,t);
-            if(ast->left->left != NULL){ //non leaf node
+            if(!is_leaf_node(ast)){ //non leaf node
+                init_subformula_at_childs(ast);
                 this->init_score(c,ast->left,t);
                 this->init_score(c,ast->right,t);
             }
         }
-        else{
+        else if(ast->label != Empty){
             creat_score_vector_at_node(c,ast,t);
             int arity = op_arity(ast->label);
             if(arity == 1){
+                init_subformula_at_childs(ast); //Incase root node assigned label and all others are empty
                 this->init_score(c,ast->left,t);
             }
             else if(arity == 2){
+                init_subformula_at_childs(ast); //function init subformula at child only if child's label is Empty
                 this->init_score(c,ast->left,t);
                 this->init_score(c,ast->right,t);
             }
