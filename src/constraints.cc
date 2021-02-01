@@ -226,7 +226,7 @@ z3::expr ConstraintSystem::pat_to_prop_map(z3::context &c, std::vector<std::stri
         std::vector<z3::expr> expr_vec;
         for(auto &itr2 : t.prop_inst){
             std::string con_str = "p_"+itr1+","+itr2.first;
-            std::cout<<"\n"<<con_str<<"\n";
+            IFVERBOSE(std::cout<<"\n"<<con_str<<"\n";)
             z3::expr expr_constr = c.bool_const(con_str.c_str());
             expr_vec.push_back(expr_constr);
         }
@@ -315,7 +315,6 @@ z3::expr ConstraintSystem::score_constraints_pattern(z3::context &c, Node *astNo
             }
             else{
                 z3::expr constr = (t.score[astNode->id][j]== valuation(c, astNode, t, j));
-                std::cout<<"\n"<<constr.decl().name().str()<<"\n";
                 score_constr.push_back(constr);
                 int arity = op_arity(astNode->label);
                 if(arity == 1){
@@ -386,10 +385,10 @@ void construct_bit_matrices1(z3::context &c, Node *ast_node,Trace &trace){
                 x_constr.push_back(c.bool_const(name.c_str()));
             }
 
-            for(auto &itr : trace.prop_inst){
-                std::string name = "XP" + std::to_string(ast_node->id) + "," + itr.first; 
-                xp_constr.push_back(c.bool_const(name.c_str()));
-            }
+            // for(auto &itr : trace.prop_inst){
+            //     std::string name = "XP" + std::to_string(ast_node->id) + "," + itr.first; 
+            //     xp_constr.push_back(c.bool_const(name.c_str()));
+            // }
             x[ast_node->id] = x_constr;
             xp[ast_node->id] = xp_constr;
             construct_bit_matrices1(c,ast_node->left, trace);
@@ -618,7 +617,7 @@ bool is_number(const std::string& s){
 
 
 std::string ConstraintSystem::construct_formula(z3::model& modl, Node* ast){
-    print_model(modl);
+    IFVERBOSE(print_model(modl);)
     if(ast->left != NULL){
         if(ast->label == Subformula || ast->label == Empty){
             std::string node_val_mapped = this->get_node_val_mapped(modl,ast);
