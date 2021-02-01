@@ -259,8 +259,8 @@ std::vector<z3::expr> ConstraintSystem::prop_constr_pos(z3::context &c, Node * a
 }
 std::vector<z3::expr> ConstraintSystem::subformula_constr_pos(z3::context &c, Node * astNode, Trace &t, int pos){
     std::vector<z3::expr> subformula_constr;
+    std::vector<z3::expr> x_vec = x[astNode->id];
     for(int k=1;k<Proposition;k++){
-        std::vector<z3::expr> x_vec = x[astNode->id];
         z3:: expr ant = x_vec[k];
         Node * mod_ast = new Node((ltl_op)k,astNode->left,astNode->right);
         z3:: expr con = (t.score[astNode->id][pos]== valuation(c, mod_ast, t, pos));
