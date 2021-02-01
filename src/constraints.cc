@@ -23,11 +23,47 @@ z3::expr do_or(z3::expr e1,z3::expr e2){
     return e1 || e2;
 }
 
+
+
 z3::expr true_expr(z3::context &c){
     std::string temp = "trueStr";
     z3::expr x = c.real_const(temp.c_str());
     z3::expr true_expr = x==x;
     return true_expr;
+}
+
+z3::expr and_vec(z3::context &c, std::vector<z3::expr> &vec){
+    if(vec.size() == 0){
+        return true_expr(c);
+    }
+    else if(vec.size() == 1){
+        return vec.back();
+    }
+    else{
+        z3::expr prev_expr = vec.front();
+        for(int i=1; i<vec.size(); i++){
+            z3::expr next_expr = vec[i];
+            prev_expr = prev_expr && next_expr;
+        }
+        return prev_expr;
+    }
+}
+
+z3::expr or_vec(z3::context &c, std::vector<z3::expr> &vec){
+    if(vec.size() == 0){
+        return true_expr(c);
+    }
+    else if(vec.size() == 1){
+        return vec.back();
+    }
+    else{
+        z3::expr prev_expr = vec.front();
+        for(int i=1; i<vec.size(); i++){
+            z3::expr next_expr = vec[i];
+            prev_expr = prev_expr || next_expr;
+        }
+        return prev_expr;
+    }
 }
 
 bool Trace:: isPropExistAtPos(int pos, std::string prop_name){
@@ -231,7 +267,8 @@ z3::expr ConstraintSystem::pat_to_prop_map(z3::context &c, std::vector<std::stri
             expr_vec.push_back(expr_constr);
         }
         map_constr[itr1] = expr_vec;
-        z3::expr or_of_vec = std::accumulate(expr_vec.begin(), expr_vec.end(), !(true_expr(c)), do_or);
+        //z3::expr or_of_vec = std::accumulate(expr_vec.begin(), expr_vec.end(), !(true_expr(c)), do_or);
+        z3::expr or_of_vec = or_vec(c,expr_vec);
         z3::expr at_most = at_most_one(c,expr_vec);
         pat_match_constr = pat_match_constr && or_of_vec && at_most;
     }
@@ -326,7 +363,8 @@ z3::expr ConstraintSystem::score_constraints_pattern(z3::context &c, Node *astNo
                 }     
             }
         }   
-        and_score_constr = std::accumulate(score_constr.begin(), score_constr.end(), true_expr(c), do_and);
+        //and_score_constr = std::accumulate(score_constr.begin(), score_constr.end(), true_expr(c), do_and);
+        and_score_constr = and_vec(c,score_constr);
         and_score_constr = and_score_constr && l_score_constr && r_score_constr;
 
     }
@@ -427,7 +465,8 @@ z3::expr ConstraintSystem::node_constraints(z3::context& c, Node * ast_node,Trac
         std::vector<z3::expr> vec_exp = itr->second;
         z3::expr or_of_vec = true_expr(c);
         if(vec_exp.size() > 0){
-            or_of_vec = std::accumulate(vec_exp.begin(), vec_exp.end(), !(true_expr(c)), do_or);
+            //or_of_vec = std::accumulate(vec_exp.begin(), vec_exp.end(), !(true_expr(c)), do_or);
+            or_of_vec = or_vec(c, vec_exp);
         }
         z3::expr at_most = at_most_one(c,vec_exp);
         node_constr = node_constr && or_of_vec && at_most;
@@ -440,7 +479,8 @@ z3::expr ConstraintSystem::leaf_constraints(z3::context& c){
 
     z3::expr leaf_cons = true_expr(c);
     for(auto &it : leaf_constr){
-        z3::expr or_of_vec = std::accumulate(it.begin(), it.end(), !(true_expr(c)), do_or);
+        //z3::expr or_of_vec = std::accumulate(it.begin(), it.end(), !(true_expr(c)), do_or);
+        z3::expr or_of_vec = or_vec(c,it);
         leaf_cons = leaf_cons && or_of_vec;
     }
 
@@ -462,7 +502,8 @@ void merged_x_xp(Node * ast_node){
 
 z3::expr ConstraintSystem::and_score_constraints(z3::context &c){
 
-    z3::expr score_con = std::accumulate(this->score_constraint.begin(), this->score_constraint.end(), true_expr(c), do_and);
+    //z3::expr score_con = std::accumulate(this->score_constraint.begin(), this->score_constraint.end(), true_expr(c), do_and);
+    z3::expr score_con = and_vec(c,this->score_constraint);
     //z3::expr final_constr = this->node_constraints(c, ast_node, trace) &&
     //                                         this->leaf_constraints(c) && 
     //                                                        score_con;
