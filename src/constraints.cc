@@ -239,7 +239,7 @@ z3::expr ConstraintSystem::pat_to_prop_map(z3::context &c, std::vector<std::stri
     return pat_match_constr;
 }
 
-std::vector<z3::expr> ConstraintSystem::prop_constr_pos(z3::context &c, Node * astNode, Trace &t, int pos){
+std::vector<z3::expr> ConstraintSystem::pat_prop_constr_pos(z3::context &c, Node * astNode, Trace &t, int pos){
     std::vector<z3::expr> prop_constr;
     std::string prop_var = astNode->prop_label;
     std::vector<z3::expr> expr_vec = map_constr[prop_var];
@@ -261,19 +261,24 @@ std::vector<z3::expr> ConstraintSystem::subformula_constr_pos(z3::context &c, No
     std::vector<z3::expr> subformula_constr;
     std::vector<z3::expr> x_vec = x[astNode->id];
     for(int k=1;k<Proposition;k++){
-        z3:: expr ant = x_vec[k];
+        z3:: expr ant = x_vec[k-1];
         Node * mod_ast = new Node((ltl_op)k,astNode->left,astNode->right);
         z3:: expr con = (t.score[astNode->id][pos]== valuation(c, mod_ast, t, pos));
         z3:: expr cons = z3::implies(ant,con);
         subformula_constr.push_back(cons);
     }
+    return subformula_constr;
+}
+
+std::vector<z3::expr> ConstraintSystem::prop_constr_pos(z3::context &c, Node * astNode, Trace &t, int pos){
+    std::vector<z3::expr> subformula_constr;
     int k=0;
     for(auto &itr : t.prop_inst){
         std::vector<z3::expr> x_vec = xp[astNode->id];
         z3:: expr ant = x_vec[k];
         Node * mod_ast = new Node(ltl_op::Proposition,astNode->left,astNode->right);
         mod_ast->prop_label = itr.first;
-        z3:: expr con = (t.score[astNode->id][pos]==valuation(c, astNode, t, pos));
+        z3:: expr con = (t.score[astNode->id][pos]==valuation(c, mod_ast, t, pos));
         z3:: expr cons = z3::implies(ant,con);
         subformula_constr.push_back(cons);
         k++;
@@ -292,7 +297,7 @@ z3::expr ConstraintSystem::score_constraints_pattern(z3::context &c, Node *astNo
                 return and_score_constr;
             }
             else if(astNode->label == Proposition){
-                std::vector<z3::expr> prop_constr_vec = this->prop_constr_pos(c,astNode,t,j);
+                std::vector<z3::expr> prop_constr_vec = this->pat_prop_constr_pos(c,astNode,t,j);
                 score_constr.insert(score_constr.end(), prop_constr_vec.begin(), prop_constr_vec.end());
             }
             else if(astNode->label == Subformula){
@@ -302,15 +307,10 @@ z3::expr ConstraintSystem::score_constraints_pattern(z3::context &c, Node *astNo
                     l_score_constr = this->score_constraints_pattern(c, astNode->left, t);
                     r_score_constr = this->score_constraints_pattern(c, astNode->right, t);
                 }
-                else{ //leaf node
-                    for(int k=Not;k<Proposition;k++){
-                        std::vector<z3::expr> x_vec = x[astNode->id];
-                        z3:: expr ant = x_vec[k];
-                        Node * mod_ast = new Node((ltl_op)k,astNode->left,astNode->right);
-                        z3:: expr con = (t.score[astNode->id][j]== valuation(c, mod_ast, t, j));
-                        z3:: expr cons = z3::implies(ant,con);
-                        score_constr.push_back(cons);
-                    }
+                else{ //leaf node with subformula
+                    std::vector<z3::expr> prop_constr_vec = this->prop_constr_pos(c,astNode,t,j);
+                    score_constr.insert(score_constr.end(), prop_constr_vec.begin(), prop_constr_vec.end());
+                   
                 }
             }
             else{
@@ -590,7 +590,7 @@ std::string ConstraintSystem::construct_formula_if_node_label(z3::model& modl, N
 }
 
 std::string ConstraintSystem::get_node_val_mapped(z3::model& modl, Node* ast){
-    if(ast->left != NULL){
+    if(ast != NULL){
         std::vector<z3::expr> expr_vec = merged_xxp[ast->id];
         for(auto &itr : expr_vec){
             std::string eval_var = modl.eval(itr).decl().name().str();
@@ -618,7 +618,7 @@ bool is_number(const std::string& s){
 
 std::string ConstraintSystem::construct_formula(z3::model& modl, Node* ast){
     IFVERBOSE(print_model(modl);)
-    if(ast->left != NULL){
+    if(ast != NULL){
         if(ast->label == Subformula || ast->label == Empty){
             std::string node_val_mapped = this->get_node_val_mapped(modl,ast);
             std::string mapped_val = "";
@@ -638,7 +638,7 @@ std::string ConstraintSystem::construct_formula(z3::model& modl, Node* ast){
             }
             else{
                 mapped_val = node_val_mapped;
-                arity = 0;
+                return mapped_val;
             }
 
             if(arity == 1){

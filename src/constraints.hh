@@ -21,8 +21,9 @@ class ConstraintSystem{
         std::string construct_formula(z3::model& modl, Node* ast);
         std::string construct_formula_if_node_label(z3::model& modl, Node* ast);
         std::string get_node_val_mapped(z3::model& modl, Node* ast);
-        std::vector<z3::expr> prop_constr_pos(z3::context &c, Node * astNode, Trace &t, int pos);
+        std::vector<z3::expr> pat_prop_constr_pos(z3::context &c, Node * astNode, Trace &t, int pos);
         std::vector<z3::expr> subformula_constr_pos(z3::context &c, Node * astNode, Trace &t, int pos);
+        std::vector<z3::expr> prop_constr_pos(z3::context &c, Node * astNode, Trace &t, int pos);
 
     private:
        
