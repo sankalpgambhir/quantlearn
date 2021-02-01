@@ -122,7 +122,7 @@ void comp::CompDriver::run(bool to_compose){
                     }
                     else{
                         f_check = false;
-                        for(int i = 0; i < t.length; i++){
+                        for(int i = 0; (i < t.length) && !f_check; i++){
                             f_check |= !((bool)t.parity ^ check(form, &t, i));
                         }
                     }
@@ -141,13 +141,15 @@ void comp::CompDriver::run(bool to_compose){
         if(!check_holds[i]){
             IFVERBOSE(std::cerr << "\nDisqualified " << *(form_set.begin()+i);)
             form_set.erase(form_set.begin() + i);
+            check_holds.erase(check_holds.begin() + i);
             i--;
             continue;
         }
 
         if(!compute_holds(form_set[i])){ // computing holds found a violating trace
-            IFVERBOSE(std::cerr << "\nDisqualified " << *(form_set.begin()+i);)
+            IFVERBOSE(std::cerr << "\nDisqualified by computation " << *(form_set.begin()+i);)
             form_set.erase(form_set.begin() + i);
+            check_holds.erase(check_holds.begin() + i);
             i--;
             continue;
         }
@@ -337,7 +339,7 @@ bool comp::CompDriver::compute_holds(Node* f){
 
             auto last = std::find(f->left->holds[j].rbegin(), f->left->holds[j].rend(), false);
 
-            int fin = std::distance(last, f->left->holds[j].rbegin());
+            int fin = std::distance(last, f->left->holds[j].rend());
             f_check |= !(((bool) this->traces.at(j).parity) 
                             ^ (fin == 0));
 
@@ -363,7 +365,7 @@ bool comp::CompDriver::compute_holds(Node* f){
             auto last = std::find(f->left->holds[j].rbegin(), f->left->holds[j].rend(), true);
 
             int fin = std::distance(last, f->left->holds[j].rend());
-            f_check |= !(((bool) this->traces.at(j).parity) 
+            f_check |= (((bool) this->traces.at(j).parity) 
                             ^ (fin == 0));
 
             if(!f_check){
@@ -415,6 +417,9 @@ bool comp::CompDriver::compose(){
     // binary
     for(int i = 0; i < prev_size; i++){
         for(int j = 0; j < prev_size; j++){ // compositions of current depth
+            if(i == j){
+                continue;
+            }
             for(auto op : {ltl_op::And, ltl_op::Or}){
                 form_set.emplace_back(new Node());
                 auto curr = form_set.back();
@@ -503,7 +508,7 @@ float comp::CompDriver::compute_trace_score(Node* f, Trace* t, const int pos){
             res = 0;
 
             for(int i = pos; i < t->length; i++){
-                assert(compute_trace_score(f->left, t, i) > 0.0);
+                //assert(compute_trace_score(f->left, t, i) > 0.0);
                 res += retarder(i - pos) * compute_trace_score(f->left, t, i);
             }
 
