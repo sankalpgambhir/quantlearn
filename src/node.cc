@@ -22,11 +22,11 @@ std::ostream& operator << (std::ostream& os, Node const* n){
         break;
     
     case 1:
-        os << operators[n->label] << n->left;
+        os << operators[n->label] << "(" << n->left << ")";
         break;
     
     case 2:
-        os << n->right << operators[n->label] << n->left;
+        os << "(" << n->right << ")" << operators[n->label] << "(" << n->left << ")";
         break;
     
     default:
