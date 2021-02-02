@@ -9,7 +9,7 @@ class ConstraintSystem{
     public:
 
         ConstraintSystem() = default;
-        bool is_sub_formula = false;
+        std::vector<std::string> prop_var_vec;
         z3::expr and_score_constraints(z3::context& c);
         z3::expr node_constraints(z3::context& c, Node * ast_node, Trace &trace);
         z3::expr leaf_constraints(z3::context& c);
@@ -24,6 +24,7 @@ class ConstraintSystem{
         std::vector<z3::expr> pat_prop_constr_pos(z3::context &c, Node * astNode, Trace &t, int pos);
         std::vector<z3::expr> subformula_constr_pos(z3::context &c, Node * astNode, Trace &t, int pos);
         std::vector<z3::expr> prop_constr_pos(z3::context &c, Node * astNode, Trace &t, int pos);
+        void construct_bit_matrices1(z3::context& c, Node * ast_node, Trace &trace);
 
     private:
        

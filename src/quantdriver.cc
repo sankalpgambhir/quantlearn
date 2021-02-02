@@ -159,28 +159,56 @@ bool QuantDriver::parse_formula(const std::string formula){
     return true;
 }
 
+bool is_prop_exist(std::vector<std::string> &prop_vec, std::string elem){
+    for(auto &itr : prop_vec){
+        if(itr == elem){
+            return true;
+        }
+    }
+    return false;
+}
 
-void get_pattern_vars(Node *ast, std::vector<std::string> &var_vec){
+std::vector<std::string> get_all_prop_vars(std::vector<Trace> &traces){
+    std::vector<std::string> prop_vec;
+    for(auto &tr : traces){
+        for(auto &itr : tr.prop_inst){
+            std::string elem = itr.first;
+            if(!is_prop_exist(prop_vec,elem)){
+                prop_vec.push_back(elem);
+            }
+        }
+    }
+    return prop_vec;
+}
+
+void get_pattern_vars(Node *ast, std::vector<std::string> &var_vec, std::vector<std::string> &prop_vec){
     if(ast != NULL){
         ltl_op ast_label = ast->label;
         std::string prop_var = ast->prop_label;
         if (prop_var != ""){
-            var_vec.push_back(prop_var);
-            ast->isPatVar = true;
+            if(!is_prop_exist(prop_vec,prop_var)){
+                var_vec.push_back(prop_var);
+                ast->isPatVar = true;
+            }
         }
         else if (ast_label != Empty){
-            get_pattern_vars(ast->left, var_vec);
-            get_pattern_vars(ast->right, var_vec);
+            get_pattern_vars(ast->left, var_vec, prop_vec);
+            get_pattern_vars(ast->right, var_vec, prop_vec);
         }
     }
 }
 
+
+
+
+
 void QuantDriver::run(){
     // if top level unknown, parallelize
+    
     if(this->ast->label == Subformula){
         //this->consys.is_sub_formula=true;
-        this->run_parallel();
-        return;
+        //this->run_parallel();
+        //return;
     }
 
     z3::optimize opt(this->opt_context);
@@ -188,8 +216,10 @@ void QuantDriver::run(){
     opt_params.set("priority", this->opt_context.str_symbol("pareto"));
     opt.set(opt_params);
 
+    std::vector<std::string> prop_vec = get_all_prop_vars(this->traces);
+    this->consys.prop_var_vec = prop_vec;
     std::vector<std::string> patterrn_vars;
-    get_pattern_vars(this->ast, patterrn_vars);
+    get_pattern_vars(this->ast, patterrn_vars, prop_vec);
     for(auto &it : patterrn_vars){
         std::cout << "\nPattern var is: " << it <<"\n";
     }
@@ -213,76 +243,6 @@ void QuantDriver::run(){
         } // TODO what about negative traces?
             
     }
-    
-
-    /*
-    if (!this->consys.is_sub_formula){
-        std::vector<std::string> patterrn_vars;
-        get_pattern_vars(this->ast, patterrn_vars);
-        for(auto &it : patterrn_vars){
-            std::cout << "\nPattern var is: " << it <<"\n";
-        }
-        for(auto &tr : this -> traces){
-            consys.init_score(this->opt_context, this->ast, tr);
-            opt.add(consys.pat_to_prop_map(this->opt_context, patterrn_vars, tr));
-            opt.add(consys.score_constraints_pattern(this->opt_context,this->ast, tr));
-            if(tr.parity == parity_t::positive){
-                opt.maximize(tr.score[this->ast->id][0]);
-                break;
-            } // TODO what about negative traces?
-            
-        }
-
-
-    }
-    else{
-        bool b = true;
-        for(auto &tr : this->traces){
-            consys.init_score(this->opt_context, this->ast, tr);
-            if(b){
-                opt.add(this->consys.node_constraints(opt_context, this->ast, tr));
-                opt.add(this->consys.leaf_constraints(opt_context));
-                b=false;
-            }
-            //this->consys.score_constraint.push_back(this->consys.score_constraints(opt_context, this->ast, tr));
-            opt.add(this->consys.score_constraints(opt_context, this->ast, tr));
-            if(tr.parity == parity_t::positive){
-                opt.maximize(tr.score[this->ast->id][0]);
-                break;
-            } // TODO what about negative traces?
-        }
-        //opt.add(this->consys.and_score_constraints(opt_context));
-    }
-    */
-
-    
-    // construct variables
-    
-
-    // construct constraint
-
-    // create optimizer
-    // z3::optimize opt(this->opt_context);
-    // z3::params opt_params(this->opt_context);
-    // opt_params.set("priority", this->opt_context.str_symbol("pareto"));
-    // opt.set(opt_params);
-    // add constraint
-    // bool b = true;
-    // for(auto &tr : this->traces){
-    //     if(b){
-    //         opt.add(this->consys.node_constraints(opt_context, this->ast, tr));
-    //         opt.add(this->consys.leaf_constraints(opt_context));
-    //         b=false;
-    //     }
-    //     this->consys.score_constraint.push_back(this->consys.score_constraints(opt_context, this->ast, tr));
-    //     if(tr.parity == parity_t::positive){
-    //         opt.maximize(tr.score[this->ast->id][0]);
-    //     } // TODO what about negative traces?
-    // }
-    // opt.add(this->consys.and_score_constraints(opt_context));
-
-
-    // add objectives
 
     // optimize
     if(opt.check() == z3::sat){
