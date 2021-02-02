@@ -27,10 +27,11 @@ z3::expr do_or(z3::expr e1,z3::expr e2){
 
 
 z3::expr true_expr(z3::context &c){
-    std::string temp = "trueStr";
-    z3::expr x = c.real_const(temp.c_str());
-    z3::expr true_expr = x==x;
-    return true_expr;
+    return c.bool_val(true);
+    // std::string temp = "trueStr";
+    // z3::expr x = c.real_const(temp.c_str());
+    // z3::expr true_expr = x==x;
+    // return true_expr;
 }
 
 z3::expr and_vec(z3::context &c, std::vector<z3::expr> &vec){
@@ -233,7 +234,8 @@ z3::expr ConstraintSystem::valuation_F(z3::context &c,
             z3::expr l_val = t.score[leftNode->id][i];
             float retard_val = retarder(i-pos);
             std::string retard_str = std::to_string(retard_val);
-            z3::expr pos_expr = ite(l_val > 0, c.real_val(retard_str.c_str())*l_val, c.real_val("0.0"));
+            //c.real_val(retard_str.c_str())
+            z3::expr pos_expr = ite(l_val > c.real_val("0.0"), c.real_val(retard_str.c_str())*l_val, c.real_val("0.0"));
             res = res + pos_expr;
             count++;
         }
@@ -336,7 +338,7 @@ std::vector<z3::expr> ConstraintSystem::prop_constr_pos(z3::context &c, Node * a
     }
     return subformula_constr;
 }
-
+/*
 z3::expr ConstraintSystem::score_constraints_pattern(z3::context &c, Node *astNode, Trace &t){
     std::vector<z3::expr> score_constr;
     z3::expr and_score_constr = true_expr(c);
@@ -384,7 +386,61 @@ z3::expr ConstraintSystem::score_constraints_pattern(z3::context &c, Node *astNo
     }
     return and_score_constr;
 }
+*/
 
+
+z3::expr ConstraintSystem::score_constraints_pattern(z3::context &c, Node *astNode, Trace &t){
+    std::vector<z3::expr> score_constr;
+    z3::expr and_score_constr = true_expr(c);
+    z3::expr l_score_constr = true_expr(c);
+    z3::expr r_score_constr = true_expr(c);
+    if(astNode != NULL){
+        if(astNode->label == Empty){
+            return and_score_constr;
+        }
+        else if(astNode->label == Proposition){
+            for(int j = 0; j < t.length; j++){
+                std::vector<z3::expr> prop_constr_vec = this->pat_prop_constr_pos(c,astNode,t,j);
+                score_constr.insert(score_constr.end(), prop_constr_vec.begin(), prop_constr_vec.end());
+            }
+        }
+        else if(astNode->label == Subformula){
+            if(!is_leaf_node(astNode)){
+                for(int j = 0; j < t.length; j++){
+                    std::vector<z3::expr> subformula_constr_vec = this->subformula_constr_pos(c,astNode, t,j);
+                    score_constr.insert(score_constr.end(), subformula_constr_vec.begin(), subformula_constr_vec.end());
+                }
+                l_score_constr = this->score_constraints_pattern(c, astNode->left, t);
+                r_score_constr = this->score_constraints_pattern(c, astNode->right, t);
+            }
+            else{
+                for(int j = 0; j < t.length; j++){
+                    std::vector<z3::expr> prop_constr_vec = this->prop_constr_pos(c,astNode,t,j);
+                    score_constr.insert(score_constr.end(), prop_constr_vec.begin(), prop_constr_vec.end());
+                }
+            }
+        }
+        else{
+            for(int j = 0; j < t.length; j++){
+                z3::expr constr = (t.score[astNode->id][j]== valuation(c, astNode, t, j));
+                score_constr.push_back(constr);
+            }
+            int arity = op_arity(astNode->label);
+            if(arity == 1){
+                l_score_constr = this->score_constraints_pattern(c, astNode->left, t);
+            }
+            else if(arity == 2){
+                l_score_constr = this->score_constraints_pattern(c, astNode->left, t);
+                r_score_constr = this->score_constraints_pattern(c, astNode->right, t);
+            }   
+        }   
+        //and_score_constr = std::accumulate(score_constr.begin(), score_constr.end(), true_expr(c), do_and);
+        and_score_constr = and_vec(c,score_constr);
+        and_score_constr = and_score_constr && l_score_constr && r_score_constr;
+
+    }
+    return and_score_constr;
+}
 
 void ConstraintSystem::construct_bit_matrices1(z3::context &c, Node *ast_node,Trace &trace){
     std::vector<z3::expr> x_constr;
