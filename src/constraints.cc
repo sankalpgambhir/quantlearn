@@ -486,7 +486,7 @@ z3::expr ConstraintSystem::and_score_constraints(z3::context &c){
 
 void creat_score_vector_at_node(z3::context &c, Node *ast, Trace &t){
     for(int i=0; i<t.length; i++){
-        std::string score_str = "score_"+std::to_string(ast->id)+","+std::to_string(i);              
+        std::string score_str = "score_"+std::to_string(t.id)+","+std::to_string(ast->id)+","+std::to_string(i);              
         z3::expr ex_temp = c.real_const(score_str.c_str());
         t.score[ast->id].push_back(ex_temp);
     }

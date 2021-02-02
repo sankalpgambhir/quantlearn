@@ -168,12 +168,24 @@ bool is_prop_exist(std::vector<std::string> &prop_vec, std::string elem){
     return false;
 }
 
+bool is_empty_prop(std::string elem){
+    if(elem == ""){
+        return true;
+    }
+    else if(elem[0] == '~'){
+        if(elem[1] == '\0'){
+            return true;
+        }
+    }
+    return false;
+}
+
 std::vector<std::string> get_all_prop_vars(std::vector<Trace> &traces){
     std::vector<std::string> prop_vec;
     for(auto &tr : traces){
         for(auto &itr : tr.prop_inst){
             std::string elem = itr.first;
-            if(!is_prop_exist(prop_vec,elem)){
+            if(!is_prop_exist(prop_vec,elem) && !is_empty_prop(elem)){
                 prop_vec.push_back(elem);
             }
         }
@@ -224,25 +236,24 @@ void QuantDriver::run(){
         std::cout << "\nPattern var is: " << it <<"\n";
     }
     bool b = true;
+    z3::expr sum_expr = this->opt_context.real_val("0.0");
     for(auto &tr : this -> traces){
         if(tr.parity == parity_t::positive){
         consys.init_score(this->opt_context, this->ast, tr);
         if(b){
             opt.add(this->consys.node_constraints(opt_context, this->ast, tr));
+            opt.add(consys.pat_to_prop_map(this->opt_context, patterrn_vars, tr));
             b = false;
         }
-        
-        opt.add(consys.pat_to_prop_map(this->opt_context, patterrn_vars, tr));
         opt.add(consys.score_constraints_pattern(this->opt_context,this->ast, tr));
-        
-        
-            z3::expr zero_expr = this->opt_context.real_val("0.0");
-            opt.add(tr.score[this->ast->id][0] > zero_expr);
-            opt.maximize(tr.score[this->ast->id][0]);
-            break;
-        } // TODO what about negative traces?
-            
+        z3::expr zero_expr = this->opt_context.real_val("0.0");
+        opt.add(tr.score[this->ast->id][0] > zero_expr);
+        sum_expr = sum_expr + tr.score[this->ast->id][0];
+        //opt.maximize(tr.score[this->ast->id][0]);
+        //break;
+        } // TODO what about negative traces?      
     }
+    opt.maximize(sum_expr);
 
     // optimize
     if(opt.check() == z3::sat){
