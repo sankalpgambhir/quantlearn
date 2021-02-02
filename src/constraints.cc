@@ -79,8 +79,11 @@ bool Trace:: isPropExistAtPos(int pos, std::string prop_name){
 
 bool is_leaf_node(Node *ast_node){
     if(ast_node != NULL){
-        if(ast_node->left == NULL){
+        if(ast_node->left == NULL || ast_node->label == Proposition){
             return true;
+        }
+        if(ast_node->label == Subformula){
+            return (ast_node->subformula_size == 0);
         }
         return false;
     }
@@ -519,15 +522,23 @@ void creat_score_vector_at_node(z3::context &c, Node *ast, Trace &t){
     }
 }
 
-void init_subformula_at_childs(Node *ast){
+void init_subformula_at_childs(Node *ast, bool is_right_init){
     if(ast->left != NULL){
         if(ast->left->label == Empty){
             ast->left->label = Subformula;
+            if(ast->label == Subformula){
+                ast->left->subformula_size = (ast->subformula_size) -1;
+            }
         }
     }
-    if(ast->right != NULL){
-        if(ast->right->label == Empty){
-            ast->right->label = Subformula;
+    if(is_right_init){
+        if(ast->right != NULL){
+            if(ast->right->label == Empty){
+                ast->right->label = Subformula;
+                if(ast->label == Subformula){
+                    ast->left->subformula_size = (ast->subformula_size) -1;
+                }
+            }
         }
     }
 }
@@ -537,7 +548,7 @@ void ConstraintSystem::init_score(z3::context &c, Node *ast, Trace &t){
         if(ast->label == Subformula){
             creat_score_vector_at_node(c,ast,t);
             if(!is_leaf_node(ast)){ //non leaf node
-                init_subformula_at_childs(ast);
+                init_subformula_at_childs(ast, true);
                 this->init_score(c,ast->left,t);
                 this->init_score(c,ast->right,t);
             }
@@ -546,11 +557,11 @@ void ConstraintSystem::init_score(z3::context &c, Node *ast, Trace &t){
             creat_score_vector_at_node(c,ast,t);
             int arity = op_arity(ast->label);
             if(arity == 1){
-                init_subformula_at_childs(ast); //Incase root node assigned label and all others are empty
+                init_subformula_at_childs(ast, false); //Incase root node assigned label and all others are empty
                 this->init_score(c,ast->left,t);
             }
             else if(arity == 2){
-                init_subformula_at_childs(ast); //function init subformula at child only if child's label is Empty
+                init_subformula_at_childs(ast, true); //function init subformula at child only if child's label is Empty
                 this->init_score(c,ast->left,t);
                 this->init_score(c,ast->right,t);
             }
