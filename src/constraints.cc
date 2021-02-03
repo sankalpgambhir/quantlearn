@@ -135,7 +135,8 @@ z3::expr ConstraintSystem::valuation(z3::context &c,
         if(pos == t.length - 1){
             return c.real_val("0.0");  //assert(0 && "Decide for end");
         }
-        return this->valuation(c, node, t, pos + 1);
+        return t.score[node->left->id][pos+1];
+        //return this->valuation(c, node, t, pos + 1);
     
     default:
         Configuration::throw_error("Invalid formula for valuation");
