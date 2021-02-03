@@ -17,7 +17,10 @@
 #include "node.hh"
 
 inline const float retarder(float f){
-    return exp(-f);
+    float val = exp(-f);
+    // float val1 = (int)(val * 1000); //roundoff upto three digit
+    // return (float)val1 / 1000; 
+    return val;
 }
 
 struct Result{

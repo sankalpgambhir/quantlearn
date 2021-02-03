@@ -174,7 +174,7 @@ bool is_empty_prop(std::string elem){
         return true;
     }
     else if(elem[0] == '~'){
-        //return true;//temporary just for check
+        return true;//temporary just for check
         if(elem[1] == '\0'){
             return true;
         }

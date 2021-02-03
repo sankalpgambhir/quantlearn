@@ -194,16 +194,31 @@ z3::expr ConstraintSystem::valuation_G(z3::context &c, Node *node, Trace &t, con
     // else{
         z3::expr res = c.real_val("0.0");
         z3::expr mult = c.real_val("1.0");
-
-        for(int i = pos; ((i < t.length) && (i < pos + 5)); i++){
-            z3::expr l_val = t.score[leftNode->id][i];
-            float retard_val = retarder(i-pos);
+        z3::expr l_val = t.score[leftNode->id][pos];
+        if(pos == t.length-1){
+            return l_val;
+        }
+        else if(pos < t.length-1){
+            z3::expr next_pos_score = t.score[node->id][pos+1];
+            float retard_val = retarder(pos);
             std::string retard_str = std::to_string(retard_val);
-            z3::expr pos_expr = ite(l_val > 0, c.real_val(retard_str.c_str())*l_val, c.real_val("0.0"));
-            mult = ite(l_val <= 0, c.real_val("0.0"), mult);
-            res = (res + pos_expr) * mult;
+            z3::expr zero_expr =  (l_val == c.real_val("0.0")) || (next_pos_score == c.real_val("0.0"));
+            //c.real_val(retard_str.c_str())*
+            res = ite(zero_expr, c.real_val("0.0"), (l_val+next_pos_score));       
         }
         return res;
+
+
+
+        // for(int i = pos; i < t.length; i++){
+        //     z3::expr l_val = t.score[leftNode->id][i];
+        //     float retard_val = retarder(i-pos);
+        //     std::string retard_str = std::to_string(retard_val);
+        //     z3::expr pos_expr = ite(l_val > 0, c.real_val(retard_str.c_str())*l_val, c.real_val("0.0"));
+        //     mult = ite(l_val <= 0, c.real_val("0.0"), mult);
+        //     res = (res + pos_expr) * mult;
+        // }
+        // return res;
     //}
 }
 
@@ -229,18 +244,33 @@ z3::expr ConstraintSystem::valuation_F(z3::context &c,
     // }
     //else{
         z3::expr res = c.real_val("0.0");
-        int count = 0;
-        for(int i = pos; i < t.length; i++){
-            z3::expr l_val = t.score[leftNode->id][i];
-            float retard_val = retarder(i-pos);
+        int count = t.length-pos;
+        z3::expr l_val = t.score[leftNode->id][pos];
+        if(pos == t.length-1){
+            return l_val;
+        }
+        else if(pos < t.length-1){
+            z3::expr next_pos_score = t.score[node->id][pos+1];
+            float retard_val = retarder(pos);
             std::string retard_str = std::to_string(retard_val);
-            //c.real_val(retard_str.c_str())
-            z3::expr pos_expr = ite(l_val > c.real_val("0.0"), c.real_val(retard_str.c_str())*l_val, c.real_val("0.0"));
-            res = res + pos_expr;
-            count++;
+            z3::expr zero_expr = (l_val == c.real_val("0.0")) && (next_pos_score == c.real_val("0.0"));
+            res = ite(zero_expr, c.real_val("0.0"), (l_val+next_pos_score));
         }
         std::string count_str = std::to_string((float) count);
         return res/c.real_val(count_str.c_str());
+
+
+        // for(int i = pos; i < t.length; i++){
+        //     z3::expr l_val = t.score[leftNode->id][i];
+        //     float retard_val = retarder(i-pos);
+        //     std::string retard_str = std::to_string(retard_val);
+        //     //c.real_val(retard_str.c_str())
+        //     z3::expr pos_expr = ite(l_val > c.real_val("0.0"), c.real_val(retard_str.c_str())*l_val, c.real_val("0.0"));
+        //     res = res + pos_expr;
+        //     count++;
+        // }
+        // std::string count_str = std::to_string((float) count);
+        // return res/c.real_val(count_str.c_str());
     //}      
 }
 
@@ -518,14 +548,18 @@ z3::expr ConstraintSystem::leaf_constraints(z3::context& c){
 
 void merged_x_xp(Node * ast_node){
     if(ast_node != NULL){
-        std::vector<z3::expr> vec1 = x[ast_node->id];
-        std::vector<z3::expr> vec2 = xp[ast_node->id];
-        std::vector<z3::expr> vec3;
-        vec3.insert(vec3.end(), vec1.begin(), vec1.end());
-        vec3.insert(vec3.end(), vec2.begin(), vec2.end());
-        merged_xxp[ast_node->id] = vec3;
-        merged_x_xp(ast_node->left);
-        merged_x_xp(ast_node->right);
+        if(ast_node->label == Subformula){
+            std::vector<z3::expr> vec1 = x[ast_node->id];
+            std::vector<z3::expr> vec2 = xp[ast_node->id];
+            std::vector<z3::expr> vec3;
+            vec3.insert(vec3.end(), vec1.begin(), vec1.end());
+            vec3.insert(vec3.end(), vec2.begin(), vec2.end());
+            merged_xxp[ast_node->id] = vec3;
+            if(!is_leaf_node(ast_node)){
+                merged_x_xp(ast_node->left);
+                merged_x_xp(ast_node->right);
+            }
+        }
     }
 }
 
