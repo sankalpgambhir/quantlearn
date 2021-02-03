@@ -195,7 +195,7 @@ z3::expr ConstraintSystem::valuation_G(z3::context &c, Node *node, Trace &t, con
         z3::expr res = c.real_val("0.0");
         z3::expr mult = c.real_val("1.0");
 
-        for(int i = pos; i < t.length; i++){
+        for(int i = pos; ((i < t.length) && (i < pos + 5)); i++){
             z3::expr l_val = t.score[leftNode->id][i];
             float retard_val = retarder(i-pos);
             std::string retard_str = std::to_string(retard_val);
