@@ -1,5 +1,6 @@
 #include "quantdriver.hh"
 #include "parser.hh"
+#include <ctime>
 
 // initialize static variables as needed
 int QuantDriver::ast_size = 0;
@@ -173,6 +174,7 @@ bool is_empty_prop(std::string elem){
         return true;
     }
     else if(elem[0] == '~'){
+        //return true;//temporary just for check
         if(elem[1] == '\0'){
             return true;
         }
@@ -223,6 +225,7 @@ void QuantDriver::run(){
         //return;
     }
 
+    time_t curr_time = time(NULL);
     z3::optimize opt(this->opt_context);
     z3::params opt_params(this->opt_context);
     opt_params.set("priority", this->opt_context.str_symbol("pareto"));
@@ -256,6 +259,8 @@ void QuantDriver::run(){
     opt.maximize(sum_expr);
 
     // optimize
+    IFVERBOSE(std::cout<<"\nConstraints generation time: "<<(time(NULL) - curr_time)<<"\n";)
+    time_t curr_time1 = time(NULL);
     if(opt.check() == z3::sat){
         // parse result into ast
 
@@ -263,7 +268,7 @@ void QuantDriver::run(){
         z3::model modl = opt.get_model();
         std::string formula_str = consys.construct_formula(modl, this->ast);
         std::cout << "\nObtained optimal formula: " << formula_str;
-        //std::cout << "\nObtained optimal formula: " << this->ast;
+        std::cout << "\ntotal time taken: " << (time(NULL) - curr_time1)<<"\n";
     }
     else{ // unsat
         Configuration::throw_error("No satisfying assignment found. Consider changing your parameters.");
