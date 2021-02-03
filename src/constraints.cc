@@ -271,10 +271,11 @@ z3::expr ConstraintSystem::valuation_F(z3::context &c,
             float retard_val = retarder(pos);
             std::string retard_str = std::to_string(retard_val);
             z3::expr zero_expr = (l_val == c.real_val("0.0")) && (next_pos_score == c.real_val("0.0"));
-            res = ite(zero_expr, c.real_val("0.0"), (l_val+next_pos_score));
+            res = ite(zero_expr, c.real_val("0.0"), ite(l_val > next_pos_score, l_val,next_pos_score));
+            //res = ite(zero_expr, c.real_val("0.0"), (l_val+next_pos_score));
         }
         std::string count_str = std::to_string((float) count);
-        return res/c.real_val(count_str.c_str());
+        return res;//c.real_val(count_str.c_str());
 
 
         // for(int i = pos; i < t.length; i++){
