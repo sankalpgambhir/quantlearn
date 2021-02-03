@@ -152,6 +152,22 @@ z3::expr ConstraintSystem::valuation_until(z3::context &c,
                                             Trace &t,
                                             const int pos, 
                                             const int offset){
+       
+    z3::expr r_val = t.score[node->right->id][pos];
+    if(pos == t.length-1){
+        return r_val;
+    }
+    else{
+        z3::expr next_val = t.score[node->id][pos+1];
+        z3::expr l_val = t.score[node->left->id][pos];
+        z3::expr l_next_true = (next_val > c.real_val("0.0")) && (l_val > c.real_val("0.0"));
+        float rtf = retarder(pos);
+        std::string rtf_str = std::to_string(rtf);
+        //z3::expr value = ite(l_next_true, (c.real_val(rtf_str.c_str())*l_val) + next_val, c.real_val("0.0"));
+        z3::expr value = ite(l_next_true, l_val + next_val, c.real_val("0.0"));
+        return z3::ite(r_val > 0, r_val, value);
+    }
+    /*
     if(pos == t.length-1)
         return c.real_val("0.0");
     else{
@@ -164,6 +180,7 @@ z3::expr ConstraintSystem::valuation_until(z3::context &c,
         return z3::ite(r_val > 0, r_val, value);
 
     }
+    */
 }
 
 z3::expr ConstraintSystem::valuation_not(z3::context &c,
@@ -346,6 +363,7 @@ std::vector<z3::expr> ConstraintSystem::subformula_constr_pos(z3::context &c, No
     for(int k=1;k<Proposition;k++){
         z3:: expr ant = x_vec[k-1];
         Node * mod_ast = new Node((ltl_op)k,astNode->left,astNode->right);
+        mod_ast->id = astNode->id;
         z3:: expr con = (t.score[astNode->id][pos]== valuation(c, mod_ast, t, pos));
         z3:: expr cons = z3::implies(ant,con);
         subformula_constr.push_back(cons);
