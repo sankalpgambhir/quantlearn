@@ -161,8 +161,8 @@ void comp::CompDriver::run(bool to_compose){
         if(!this->compose()){
             Configuration::throw_error("No formulas of higher depth available");
         }
+        IFVERBOSE(std::cerr << "\nComputed compositions.";)
     }
-    IFVERBOSE(std::cerr << "\nComputed compositions.";)
 }
 
 bool comp::CompDriver::parse_traces(const std::fstream &p_source, const std::fstream &n_source){
@@ -465,9 +465,9 @@ float comp::CompDriver::compute_score(Node* f){
     for(auto &t : this->traces){
         if(t.parity == positive){
             t_scores.emplace_back(compute_trace_score(f, &t));
-            assert(t_scores.back() > 0.0);
             IFVERBOSE(std::cerr << "\nGot score " << t_scores.back()
                         << " on trace " << t.id << " and formula " << f;)
+            assert(t_scores.back() > 0.0);
         }
     }
 
