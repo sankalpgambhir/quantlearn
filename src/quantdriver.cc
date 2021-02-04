@@ -241,7 +241,7 @@ void QuantDriver::run(){
     bool b = true;
     z3::expr sum_expr = this->opt_context.real_val("0.0");
     for(auto &tr : this -> traces){
-        if(tr.parity == parity_t::positive){
+        //if(tr.parity == parity_t::positive){
         consys.init_score(this->opt_context, this->ast, tr);
         if(b){
             opt.add(this->consys.node_constraints(opt_context, this->ast, tr));
@@ -250,11 +250,16 @@ void QuantDriver::run(){
         }
         opt.add(consys.score_constraints_pattern(this->opt_context,this->ast, tr));
         z3::expr zero_expr = this->opt_context.real_val("0.0");
+        
+        if(tr.parity == parity_t::positive){
         opt.add(tr.score[this->ast->id][0] > zero_expr);
         sum_expr = sum_expr + tr.score[this->ast->id][0];
-        //opt.maximize(tr.score[this->ast->id][0]);
-        //break;
-        } // TODO what about negative traces?      
+        } // TODO what about negative traces?  
+        else{
+            opt.add(tr.score[this->ast->id][0] <= zero_expr);
+            sum_expr = sum_expr - tr.score[this->ast->id][0];
+        }  
+        //}  
     }
     opt.maximize(sum_expr);
 

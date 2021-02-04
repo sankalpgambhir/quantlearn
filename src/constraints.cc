@@ -381,6 +381,7 @@ std::vector<z3::expr> ConstraintSystem::prop_constr_pos(z3::context &c, Node * a
         z3:: expr ant = x_vec[k];
         Node * mod_ast = new Node(ltl_op::Proposition,astNode->left,astNode->right);
         mod_ast->prop_label = itr;
+        mod_ast->id = astNode->id;
         z3:: expr con = (t.score[astNode->id][pos]==valuation(c, mod_ast, t, pos));
         z3:: expr cons = z3::implies(ant,con);
         subformula_constr.push_back(cons);
@@ -616,7 +617,7 @@ void init_subformula_at_childs(Node *ast, bool is_right_init){
             if(ast->right->label == Empty){
                 ast->right->label = Subformula;
                 if(ast->label == Subformula){
-                    ast->left->subformula_size = (ast->subformula_size) -1;
+                    ast->right->subformula_size = (ast->subformula_size) -1;
                 }
             }
         }
