@@ -6,7 +6,7 @@
 
 
 // actual config options
-#define GF_FRAGMENT 0
+#define GF_FRAGMENT 1
 #define NNF 1
 #define TRACE_DELIMITER '#' // TODO: input delimiters from user
 #define STEP_DELIMITER ';'
@@ -29,10 +29,11 @@
 
 // debugging
 #define VERBOSE (void*) 0
+//#define NVERBOSE 1
 #ifndef NVERBOSE
     #define IFVERBOSE(x) x
 #else
-    #define IFVERBOSE(x) (void*) 0
+    #define IFVERBOSE(x) (void*) 0;
 #endif
 
 namespace po = boost::program_options;

@@ -211,16 +211,19 @@ struct copier : public boost::static_visitor<bool>{
         return boost::apply_visitor(*this)(u.oper1);
     }
 
-    #if GF_FRAGMENT
-        //
-    #else
-
     bool operator ()(const unop<op_next> &u){
+#if GF_FRAGMENT
+        return false;
+#else
         a->label = ltl_op::Next; 
         a = a->left;
         return boost::apply_visitor(*this)(u.oper1);
+#endif
     }
     bool operator ()(const binop<op_until> &b){
+#if GF_FRAGMENT
+        return false;
+#else
         a->label = ltl_op::Until; 
         Node * temp = a;
         a = temp->left;
@@ -228,9 +231,8 @@ struct copier : public boost::static_visitor<bool>{
         a = temp->right;
         bool r = boost::apply_visitor(*this)(b.oper2);
         return l && r;
+#endif
     }
-
-    #endif
 
     bool operator ()(const binop<op_and> &b){
         a->label = ltl_op::And; 

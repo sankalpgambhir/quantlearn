@@ -128,6 +128,9 @@ z3::expr ConstraintSystem::valuation(z3::context &c,
     case ltl_op::Finally:
         return this->valuation_F(c, node, t, pos);
 
+#if GF_FRAGMENT
+    // nothing
+#else
     case ltl_op::Until:
         return this->valuation_until(c, node, t, pos);
 
@@ -137,7 +140,7 @@ z3::expr ConstraintSystem::valuation(z3::context &c,
         }
         return t.score[node->left->id][pos+1];
         //return this->valuation(c, node, t, pos + 1);
-    
+#endif
     default:
         Configuration::throw_error("Invalid formula for valuation");
         break;
@@ -698,7 +701,11 @@ std::string ConstraintSystem::construct_formula_if_node_label(z3::model& modl, N
             std::string node_op = "";
             switch (ast->label){
                 case Not: node_op = "!"; break;
+#if GF_FRAGMENT
+    // nothing
+#else
                 case Next: node_op = "X"; break;
+#endif
                 case Globally: node_op = "G"; break;
                 case Finally: node_op = "F"; break;
                 default: assert(0 && "Tried to print invalid operator");
@@ -712,7 +719,11 @@ std::string ConstraintSystem::construct_formula_if_node_label(z3::model& modl, N
             switch (ast->label){
                 case Or: node_op = "+"; break;
                 case And: node_op = "."; break;
+#if GF_FRAGMENT
+    // nothing
+#else
                 case Until: node_op = "U"; break;
+#endif
                 default: assert(0 && "Tried to print invalid operator");
             }
             return "("+left_formula+")"+node_op+"("+right_formula+")";
