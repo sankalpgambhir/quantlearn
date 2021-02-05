@@ -770,13 +770,17 @@ std::string ConstraintSystem::construct_formula(z3::model& modl, Node* ast){
             if(is_number(node_val_mapped)){
                 int my_int = std::stoi(node_val_mapped);//string to int
                 switch(my_int){
-                    case 1: mapped_val = "!"; arity = 1; break;
-                    case 2: mapped_val = "+"; arity = 2; break;
-                    case 3: mapped_val = "."; arity = 2; break;
-                    case 4: mapped_val = "X"; arity = 1; break;
-                    case 5: mapped_val = "U"; arity = 2; break;
-                    case 6: mapped_val = "G"; arity = 1; break;
-                    case 7: mapped_val = "F"; arity = 1; break;
+                    case Not: mapped_val = "!"; arity = 1; break;
+                    case Or: mapped_val = "+"; arity = 2; break;
+                    case And: mapped_val = "."; arity = 2; break;
+                #if GF_FRAGMENT
+                    // nothing
+                #else
+                    case Next: mapped_val = "X"; arity = 1; break;
+                    case Until: mapped_val = "U"; arity = 2; break;
+                #endif    
+                    case Globally: mapped_val = "G"; arity = 1; break;
+                    case Finally: mapped_val = "F"; arity = 1; break;
                     default: assert(0 && "Unrecognized ltl operator");
                 }
             }
