@@ -584,6 +584,16 @@ void merged_x_xp(Node * ast_node){
                 merged_x_xp(ast_node->right);
             }
         }
+        else if(ast_node->label != Empty){ //node is already labbelled no need to put constraints
+            int arity = op_arity(ast_node->label);
+            if(arity == 1){
+                merged_x_xp(ast_node->left);
+            }
+            else if(arity == 2){
+                merged_x_xp(ast_node->left);
+                merged_x_xp(ast_node->right);
+            }
+        }
     }
 }
 
