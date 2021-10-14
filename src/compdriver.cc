@@ -467,7 +467,7 @@ float comp::CompDriver::compute_score(Node* f){
             t_scores.emplace_back(compute_trace_score(f, &t));
             IFVERBOSE(std::cerr << "\nGot score " << t_scores.back()
                         << " on trace " << t.id << " and formula " << f;)
-            assert(t_scores.back() > 0.0);
+            //assert(t_scores.back() > 0.0);
         }
     }
 
