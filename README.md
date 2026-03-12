@@ -1,6 +1,6 @@
-# quantlearn
+# Quantlearn
 
-**quantlearn** is a research-oriented project focused on learning **Linear Temporal Logic (LTL) formulae** from sample traces. The project aims to infer formal temporal specifications that explain observed system behaviors, supporting applications in formal verification, runtime monitoring, and automated specification mining.
+**Quantlearn** is a research-oriented project focused on learning **Linear Temporal Logic (LTL) formulae** from sample traces. The project aims to infer formal temporal specifications that explain observed system behaviors, supporting applications in formal verification, runtime monitoring, and automated specification mining.
 
 ---
 
